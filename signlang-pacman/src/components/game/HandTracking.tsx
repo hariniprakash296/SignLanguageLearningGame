@@ -192,8 +192,13 @@ export const HandTracking: React.FC<HandTrackingProps> = ({ onGestureMatch, targ
                 </div>
 
                 {status === 'MATCH' && (
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-green-400 font-black text-6xl italic tracking-tighter drop-shadow-[0_0_15px_rgba(74,222,128,0.5)] animate-bounce">
-                        Verifying
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                        <div className="bg-green-500 text-white px-6 py-3 rounded-full font-bold text-lg shadow-xl flex items-center gap-2 animate-pulse">
+                            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                            Verifying...
+                        </div>
                     </div>
                 )}
             </div>
