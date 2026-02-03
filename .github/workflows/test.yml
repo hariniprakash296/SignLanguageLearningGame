@@ -1,0 +1,42 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: signlang-pacman/package-lock.json
+
+      - name: Install dependencies
+        working-directory: signlang-pacman
+        run: npm ci
+
+      - name: Run linting
+        working-directory: signlang-pacman
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Run tests
+        working-directory: signlang-pacman
+        run: npm run test:ci
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          directory: signlang-pacman/coverage
+          fail_ci_if_error: false
