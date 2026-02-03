@@ -103,25 +103,6 @@ export default function Home() {
           </div>
 
           <div className="flex gap-4 items-center">
-            {/* Level Navigation Buttons */}
-            {level === 2 && (
-              <Button
-                onClick={() => setLevel(1)}
-                variant="outline"
-                className="gap-2 border-purple-300 text-purple-700 hover:bg-purple-50"
-              >
-                ← Level 1
-              </Button>
-            )}
-            {level === 1 && level2Unlocked && (
-              <Button
-                onClick={() => setLevel(2)}
-                variant="outline"
-                className="gap-2 border-green-300 text-green-700 hover:bg-green-50"
-              >
-                Level 2 →
-              </Button>
-            )}
 
             <div className="bg-yellow-50 px-6 py-3 rounded-xl border-2 border-yellow-200 flex items-center gap-3 shadow-sm">
               <Trophy className="text-yellow-600 h-6 w-6" />
@@ -172,29 +153,42 @@ export default function Home() {
             </TabsTrigger>
           </TabsList>
 
+          {/* Level Navigation Bar */}
+          <div className="flex items-center justify-between mt-4 px-4 py-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-slate-200">
+            <Button
+              variant="ghost"
+              onClick={() => setLevel(1)}
+              disabled={level === 1}
+              className={`gap-2 ${level === 1 ? 'text-slate-300' : 'text-blue-600 hover:bg-blue-100'}`}
+            >
+              ← Level 1
+            </Button>
+
+            <div className="flex items-center gap-4">
+              <div className={`px-4 py-2 rounded-lg font-bold ${level === 1 ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                Level 1: Letters
+              </div>
+              <div className={`px-4 py-2 rounded-lg font-bold ${level === 2 ? 'bg-purple-600 text-white' : level2Unlocked ? 'bg-slate-100 text-slate-600' : 'bg-slate-100 text-slate-300'}`}>
+                {level2Unlocked ? 'Level 2: Words' : '🔒 Level 2'}
+              </div>
+            </div>
+
+            <Button
+              variant="ghost"
+              onClick={() => setLevel(2)}
+              disabled={level === 2 || !level2Unlocked}
+              className={`gap-2 ${level === 2 || !level2Unlocked ? 'text-slate-300' : 'text-purple-600 hover:bg-purple-100'}`}
+            >
+              Level 2 →
+            </Button>
+          </div>
+
           <TabsContent value="game" className="mt-6">
             <Card className="border-none shadow-xl bg-white overflow-hidden">
               <CardHeader className="border-b bg-slate-50/50">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-2xl">Arcade Learning Mode</CardTitle>
-                    <div className="text-sm text-muted-foreground">
-                      Eat the letter pellets to see their American Sign Language representation.
-                    </div>
-                  </div>
-                  {!level2Unlocked && (
-                    <div className="text-right text-sm">
-                      <div className="text-slate-500">Level 2 Progress</div>
-                      <div className="font-bold text-purple-600">
-                        {wordsCompleted}/4 words • {masteredLetters.length}/20 letters
-                      </div>
-                    </div>
-                  )}
-                  {level2Unlocked && (
-                    <div className="px-4 py-2 bg-green-100 rounded-xl text-green-800 font-bold animate-pulse">
-                      ✨ Level 2 Unlocked!
-                    </div>
-                  )}
+                <CardTitle className="text-2xl">Arcade Learning Mode</CardTitle>
+                <div className="text-sm text-muted-foreground">
+                  Eat the letter pellets to see their American Sign Language representation.
                 </div>
               </CardHeader>
               <CardContent className="p-6">

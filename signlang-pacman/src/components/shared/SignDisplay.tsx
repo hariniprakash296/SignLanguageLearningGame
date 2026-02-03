@@ -144,51 +144,47 @@ export const SignDisplay: React.FC<SignDisplayProps> = ({
     }, [isWord, showAnimation, safeSign]);
 
     const sizeClasses = {
-        sm: 'w-24 h-24',
-        md: 'w-48 h-48',
-        lg: 'w-full max-w-[400px] h-64'
+        sm: 'w-32 h-40',
+        md: 'w-64 h-72',
+        lg: 'w-full max-w-[500px] h-[400px]'
     };
 
     return (
         <div className="flex flex-col items-center gap-4 w-full">
-            <div className={`${sizeClasses[size]} rounded-2xl overflow-hidden bg-white border-2 border-slate-100 flex items-center justify-center shadow-xl p-4 relative`}>
-                <div className="grid grid-cols-2 w-full h-full gap-4 items-center">
-                    {/* Letter Panel */}
-                    <div className="flex flex-col items-center justify-center bg-blue-50 rounded-xl h-full">
-                        <span className="text-7xl font-black text-blue-600">
-                            {currentLetter}
-                        </span>
-                        <span className="text-[10px] font-bold text-blue-300 uppercase tracking-widest mt-1">Character</span>
-                    </div>
+            <div className={`${sizeClasses[size]} rounded-2xl overflow-hidden bg-white border-2 border-slate-100 flex flex-col items-center justify-center shadow-xl p-4 relative`}>
+                {/* Letter Badge */}
+                <div className="absolute top-3 left-3 flex items-center gap-2 bg-blue-600 text-white px-3 py-1.5 rounded-lg shadow-md">
+                    <span className="text-2xl font-black">{currentLetter}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Letter</span>
+                </div>
 
-                    {/* Sign Panel */}
-                    <div className="flex items-center justify-center h-full p-2">
-                        {hasImage ? (
-                            <img
-                                src={`/assets/asl/${currentLetter.toLowerCase()}.png`}
-                                alt={`ASL sign for ${currentLetter}`}
-                                className="w-full h-full object-contain"
-                                onError={() => setImageError(true)}
-                            />
-                        ) : hasSVG ? (
-                            <div className="w-full h-full flex items-center justify-center p-1">
-                                <div className="w-full h-full transform scale-125 drop-shadow-md">
-                                    {ASL_SIGNS[currentLetter]}
-                                </div>
+                {/* Sign Image - Full Size */}
+                <div className="flex items-center justify-center w-full h-full">
+                    {hasImage ? (
+                        <img
+                            src={`/assets/asl/${currentLetter.toLowerCase()}.png`}
+                            alt={`ASL sign for ${currentLetter}`}
+                            className="w-full h-full object-contain"
+                            onError={() => setImageError(true)}
+                        />
+                    ) : hasSVG ? (
+                        <div className="w-full h-full flex items-center justify-center">
+                            <div className="w-3/4 h-3/4 drop-shadow-md">
+                                {ASL_SIGNS[currentLetter]}
                             </div>
-                        ) : (
-                            <div className="text-center font-bold text-slate-300 italic text-sm">
-                                🤟 Hand Sign<br />Incoming
-                            </div>
-                        )}
-                    </div>
+                        </div>
+                    ) : (
+                        <div className="text-center font-bold text-slate-300 italic text-sm">
+                            🤟 Hand Sign<br />Incoming
+                        </div>
+                    )}
                 </div>
 
                 {/* Progress dot for word sequencing */}
                 {isWord && (
-                    <div className="absolute top-2 right-2 flex gap-1">
+                    <div className="absolute bottom-3 flex gap-1">
                         {sign.split('').map((_, i) => (
-                            <div key={i} className={`w-1.5 h-1.5 rounded-full ${i === currentIndex ? 'bg-blue-600' : 'bg-slate-200'}`} />
+                            <div key={i} className={`w-2 h-2 rounded-full ${i === currentIndex ? 'bg-blue-600' : 'bg-slate-200'}`} />
                         ))}
                     </div>
                 )}

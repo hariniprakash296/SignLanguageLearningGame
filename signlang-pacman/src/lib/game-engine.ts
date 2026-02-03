@@ -334,10 +334,31 @@ export class GameEngine {
 
         // Draw status text if frozen
         if (this.isFrozen) {
-            this.ctx.fillStyle = 'rgba(255, 255, 0, 0.8)';
-            this.ctx.font = `bold ${this.gridSize * 0.8}px Arial`;
+            // Draw semi-transparent overlay
+            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+            // Draw centered pill background
+            const text = "SHOW YOUR SIGN";
+            const fontSize = Math.min(this.gridSize * 0.5, 24);
+            this.ctx.font = `bold ${fontSize}px Arial`;
+            const textWidth = this.ctx.measureText(text).width;
+            const pillWidth = textWidth + 40;
+            const pillHeight = fontSize + 20;
+            const pillX = (this.canvas.width - pillWidth) / 2;
+            const pillY = (this.canvas.height - pillHeight) / 2;
+
+            // Pill background
+            this.ctx.fillStyle = 'rgba(59, 130, 246, 0.9)';
+            this.ctx.beginPath();
+            this.ctx.roundRect(pillX, pillY, pillWidth, pillHeight, 10);
+            this.ctx.fill();
+
+            // Text
+            this.ctx.fillStyle = 'white';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText("WAITING FOR SIGN...", this.canvas.width / 2, this.canvas.height / 2);
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(text, this.canvas.width / 2, this.canvas.height / 2);
         }
     }
 }
