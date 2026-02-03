@@ -9,10 +9,12 @@ import { VideoTranslator } from "@/components/youtube/VideoTranslator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trophy, BookOpen, Youtube, GraduationCap, X } from "lucide-react";
+import { Trophy, BookOpen, Youtube, GraduationCap, X, Globe, Star } from "lucide-react";
 
 const HandTracking = dynamic(() => import("@/components/game/HandTracking").then(mod => mod.HandTracking), { ssr: false });
 const SignDisplay = dynamic(() => import("@/components/shared/SignDisplay").then(mod => mod.SignDisplay), { ssr: false });
+const SignTranslator = dynamic(() => import("@/components/translate/SignTranslator").then(mod => mod.SignTranslator), { ssr: false });
+const Level2Game = dynamic(() => import("@/components/game/Level2Game").then(mod => mod.Level2Game), { ssr: false });
 
 export default function Home() {
   const {
@@ -25,7 +27,13 @@ export default function Home() {
     currentLetterIndex,
     setCurrentLetterIndex,
     verificationMode,
-    setVerificationMode
+    setVerificationMode,
+    showAssistance,
+    completeWord,
+    level2Unlocked,
+    wordsCompleted,
+    masteredLetters,
+    setLevel
   } = useGameStore();
 
   const [showSuccessLetter, setShowSuccessLetter] = React.useState(false);
@@ -66,6 +74,7 @@ export default function Home() {
           setTimeout(() => {
             setShowSuccessLetter(false);
             incrementScore(100); // Big bonus
+            completeWord(targetWord); // Track completed word for Level 2 unlock
             setIsWaitingForSign(false);
             setVerificationMode('teaching'); // Reset for next time
           }, 2000);
@@ -75,7 +84,7 @@ export default function Home() {
         }
       }
     }
-  }, [targetWord, showSuccessLetter, verificationMode, currentLetterIndex, incrementScore, setVerificationMode, setCurrentLetterIndex, setIsWaitingForSign]);  // Correct dependencies for callback stability
+  }, [targetWord, showSuccessLetter, verificationMode, currentLetterIndex, incrementScore, setVerificationMode, setCurrentLetterIndex, setIsWaitingForSign, completeWord]);
 
   return (
     <main className="min-h-screen bg-slate-50 p-4 md:p-8">
@@ -93,7 +102,27 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex gap-4">
+          <div className="flex gap-4 items-center">
+            {/* Level Navigation Buttons */}
+            {level === 2 && (
+              <Button
+                onClick={() => setLevel(1)}
+                variant="outline"
+                className="gap-2 border-purple-300 text-purple-700 hover:bg-purple-50"
+              >
+                ← Level 1
+              </Button>
+            )}
+            {level === 1 && level2Unlocked && (
+              <Button
+                onClick={() => setLevel(2)}
+                variant="outline"
+                className="gap-2 border-green-300 text-green-700 hover:bg-green-50"
+              >
+                Level 2 →
+              </Button>
+            )}
+
             <div className="bg-yellow-50 px-6 py-3 rounded-xl border-2 border-yellow-200 flex items-center gap-3 shadow-sm">
               <Trophy className="text-yellow-600 h-6 w-6" />
               <div>
@@ -113,7 +142,7 @@ export default function Home() {
 
         {/* Main Interface */}
         <Tabs defaultValue="game" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 h-14 p-1 bg-slate-200/50 rounded-xl">
+          <TabsList className="grid w-full grid-cols-3 h-14 p-1 bg-slate-200/50 rounded-xl">
             <TabsTrigger
               value="game"
               className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-lg font-bold"
@@ -132,20 +161,64 @@ export default function Home() {
                 YouTube Translator
               </div>
             </TabsTrigger>
+            <TabsTrigger
+              value="sign-translator"
+              className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-lg font-bold"
+            >
+              <div className="flex items-center gap-2">
+                <Globe className="h-5 w-5" />
+                Sign Translator
+              </div>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="game" className="mt-6">
             <Card className="border-none shadow-xl bg-white overflow-hidden">
               <CardHeader className="border-b bg-slate-50/50">
-                <CardTitle className="text-2xl">Arcade Learning Mode</CardTitle>
-                <div className="text-sm text-muted-foreground">
-                  Eat the letter pellets to see their American Sign Language representation.
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-2xl">Arcade Learning Mode</CardTitle>
+                    <div className="text-sm text-muted-foreground">
+                      Eat the letter pellets to see their American Sign Language representation.
+                    </div>
+                  </div>
+                  {!level2Unlocked && (
+                    <div className="text-right text-sm">
+                      <div className="text-slate-500">Level 2 Progress</div>
+                      <div className="font-bold text-purple-600">
+                        {wordsCompleted}/4 words • {masteredLetters.length}/20 letters
+                      </div>
+                    </div>
+                  )}
+                  {level2Unlocked && (
+                    <div className="px-4 py-2 bg-green-100 rounded-xl text-green-800 font-bold animate-pulse">
+                      ✨ Level 2 Unlocked!
+                    </div>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="p-6">
                 <GameCanvas />
               </CardContent>
             </Card>
+
+            {/* Level 2 Section */}
+            {level2Unlocked && (
+              <Card className="mt-6 border-2 border-purple-200 shadow-xl bg-gradient-to-br from-purple-50 to-blue-50 overflow-hidden">
+                <CardHeader className="border-b border-purple-100">
+                  <CardTitle className="text-2xl flex items-center gap-2">
+                    <Star className="h-6 w-6 text-purple-600" />
+                    Level 2: Initialized Signs
+                  </CardTitle>
+                  <CardDescription>
+                    Learn signs where the handshape uses the first letter of the word.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <Level2Game />
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="youtube" className="mt-6">
@@ -158,6 +231,20 @@ export default function Home() {
               </CardHeader>
               <CardContent className="p-0">
                 <VideoTranslator />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="sign-translator" className="mt-6">
+            <Card className="border-none shadow-xl bg-white overflow-hidden min-h-[700px]">
+              <CardHeader className="border-b bg-gradient-to-r from-purple-50 to-blue-50">
+                <CardTitle className="text-2xl">Cross-Country Sign Translator</CardTitle>
+                <CardDescription>
+                  Translate signs between different countries' sign languages. Great for traveling deaf individuals.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <SignTranslator />
               </CardContent>
             </Card>
           </TabsContent>
@@ -235,10 +322,19 @@ export default function Home() {
                       {verificationMode === 'teaching' ? 'Demonstration' : 'Reference'}
                     </h3>
                     <div className="aspect-video bg-slate-100 rounded-xl flex items-center justify-center relative overflow-hidden group">
-                      <SignDisplay
-                        sign={activeLetter}
-                        showAnimation={false}
-                      />
+                      {showAssistance ? (
+                        <SignDisplay
+                          sign={activeLetter}
+                          showAnimation={false}
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-center p-8">
+                          <div className="text-6xl mb-4">🧠</div>
+                          <h4 className="text-xl font-black text-purple-700 mb-2">FINAL TEST!</h4>
+                          <p className="text-purple-600 font-medium">Sign from memory - no hints!</p>
+                          <p className="text-slate-400 text-sm mt-2">Current letter: <span className="font-black text-lg text-purple-800">{activeLetter}</span></p>
+                        </div>
+                      )}
                       {showSuccessLetter && (
                         <div className="absolute inset-0 bg-green-500/80 flex flex-col items-center justify-center animate-in fade-in zoom-in duration-300">
                           <div className="bg-white rounded-full p-4 mb-2 shadow-lg">

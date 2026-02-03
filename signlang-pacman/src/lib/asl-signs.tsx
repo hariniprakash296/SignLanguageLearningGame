@@ -46,12 +46,15 @@ export const ASL_SIGNS: Record<string, React.ReactNode> = {
         <svg viewBox="0 0 100 100" fill="none" stroke="black" strokeWidth="2.2" strokeLinecap="round">
             {/* Palm/Fist base */}
             <path d="M30,80 L30,45 Q30,40 40,40 L65,40 Q70,40 70,45 L70,80 Z" fill="white" />
-            {/* Curled fingertips touching thumb */}
-            <path d="M30,45 Q50,48 70,45" />
-            <path d="M30,55 Q50,58 70,55" />
-            {/* Thumb tucked across */}
-            <path d="M30,70 Q55,70 65,55" fill="white" />
-            <line x1="45" y1="70" x2="55" y2="65" strokeOpacity="0.3" />
+            {/* Curled fingers - tips pointing down toward palm */}
+            <path d="M35,40 Q35,55 45,55" /> {/* Index curled */}
+            <path d="M45,40 Q45,58 55,58" /> {/* Middle curled */}
+            <path d="M55,40 Q55,55 62,55" /> {/* Ring curled */}
+            {/* Thumb tucked UNDER fingers - positioned below fingertips */}
+            <path d="M30,65 Q35,75 50,70 Q55,68 55,60" fill="white" />
+            {/* Fingertips resting on thumb */}
+            <circle cx="48" cy="58" r="3" fill="#f0f0f0" stroke="black" strokeWidth="1" />
+            <line x1="45" y1="55" x2="50" y2="62" strokeOpacity="0.4" /> {/* Connection to thumb */}
         </svg>
     ),
     F: (

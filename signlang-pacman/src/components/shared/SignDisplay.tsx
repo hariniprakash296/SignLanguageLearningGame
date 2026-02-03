@@ -14,7 +14,7 @@ const ASL_DESCRIPTIONS: Record<string, string> = {
     B: "Flat hand, fingers up, thumb across palm",
     C: "Curved hand like holding a ball",
     D: "Index up, thumb touches middle finger",
-    E: "Fingers curled, thumb under fingertips",
+    E: "Fingers curled down, thumb tucked under with tips resting on thumb",
     F: "Thumb + index make circle, 3 fingers up",
     G: "Index + thumb point sideways",
     H: "Index + middle extended horizontally",

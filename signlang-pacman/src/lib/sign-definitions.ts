@@ -128,17 +128,18 @@ export const checkSign = (landmarks: Landmark[], word: string): boolean => {
                 const middleTip = l[12];
                 const ringTip = l[16];
 
-                // E: Tips of fingers rest ON TOP of the thumb (or thumb curls under them).
-                // Key differentiator from S:
-                // 1. Thumb is "lower" or tucked under.
-                // 2. Tips are touching the thumb or very close.
+                // E: Thumb is UNDER the fingers (thumb tip Y > fingertip Y means thumb is below in screen coords)
+                // Fingertips rest on TOP of thumb pad
+                const thumbUnder = thumbTip.y > indexTip.y || thumbTip.y > middleTip.y;
 
+                // Tips should be close to thumb (touching or near)
                 const dThumbIndex = dist(thumbTip, indexTip) / scale;
                 const dThumbMiddle = dist(thumbTip, middleTip) / scale;
                 const dThumbRing = dist(thumbTip, ringTip) / scale;
+                const tipsNearThumb = (dThumbIndex < 0.22 || dThumbMiddle < 0.22 || dThumbRing < 0.22);
 
-                // E requires tight cluster
-                return (dThumbIndex < 0.22 || dThumbMiddle < 0.22 || dThumbRing < 0.22);
+                // Both conditions must be true: thumb under AND tips near thumb
+                return thumbUnder && tipsNearThumb;
             }
         },
         'F': {
