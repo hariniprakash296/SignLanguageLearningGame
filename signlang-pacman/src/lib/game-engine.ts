@@ -125,12 +125,14 @@ export class GameEngine {
 
     public cancelPractice() {
         if (this.activelyPracticingPellet) {
-            this.cancelCooldownPellet = this.activelyPracticingPellet;
-            this.cancelCooldownTimer = 2.0; // 2 seconds cooldown
-            this.activelyPracticingPellet.learned = false; // Allow re-learning later
+            // Keep pellet.learned = true so it won't re-trigger
+            // The user cancelled, so skip this pellet entirely
+            this.activelyPracticingPellet.collected = true; // Mark as collected to remove from maze
         }
         this.isFrozen = false;
         this.activelyPracticingPellet = null;
+        this.cancelCooldownPellet = null;
+        this.cancelCooldownTimer = 0;
     }
 
     private gameLoop = (currentTime: number) => {

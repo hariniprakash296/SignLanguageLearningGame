@@ -105,8 +105,8 @@ export const useGameStore = create<GameState>()(
                 const uniqueNewLetters = [...new Set([...state.masteredLetters, ...newLetters])];
                 const newWordsCompleted = state.wordsCompleted + 1;
 
-                // Check Level 2 unlock: 4 words AND 20+ unique letters mastered
-                const shouldUnlock = newWordsCompleted >= 4 && uniqueNewLetters.length >= 20;
+                // Check Level 2 unlock: 3 words AND 20+ unique letters mastered
+                const shouldUnlock = newWordsCompleted >= 3 && uniqueNewLetters.length >= 20;
 
                 set({
                     wordsCompleted: newWordsCompleted,

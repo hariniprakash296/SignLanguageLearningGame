@@ -45,46 +45,25 @@ export default function Home() {
   const handleLetterMatch = React.useCallback((letter: string) => {
     if (!targetWord || showSuccessLetter) return;
 
-    if (verificationMode === 'teaching') {
-      // PHASE 1: TEACHING (Pause and Show Success)
-      setShowSuccessLetter(true);
+    // Only teaching mode - no final challenge
+    // Show success, then move to next letter
+    setShowSuccessLetter(true);
 
-      setTimeout(() => {
-        setShowSuccessLetter(false);
-        if (currentLetterIndex + 1 >= targetWord.length) {
-          // Teaching complete -> Move to Verification Phase
-          setVerificationMode('whole_word');
-          setCurrentLetterIndex(0);
-        } else {
-          // Next letter to teach
-          setCurrentLetterIndex(currentLetterIndex + 1);
-          incrementScore(10);
-        }
-      }, 1500);
-
-    } else {
-      // PHASE 2: WHOLE WORD VERIFICATION (Instant Flow)
-      // Check if the matched gesture corresponds to the *current sequence letter*
-      if (letter === targetWord[currentLetterIndex]) {
-        const nextIndex = currentLetterIndex + 1;
-
-        if (nextIndex >= targetWord.length) {
-          // FULL SEQUENCE COMPLETE!
-          setShowSuccessLetter(true); // Final success
-          setTimeout(() => {
-            setShowSuccessLetter(false);
-            incrementScore(100); // Big bonus
-            completeWord(targetWord); // Track completed word for Level 2 unlock
-            setIsWaitingForSign(false);
-            setVerificationMode('teaching'); // Reset for next time
-          }, 2000);
-        } else {
-          // Advance sequence immediately (no delay)
-          setCurrentLetterIndex(nextIndex);
-        }
+    setTimeout(() => {
+      setShowSuccessLetter(false);
+      if (currentLetterIndex + 1 >= targetWord.length) {
+        // Teaching complete - word is done!
+        incrementScore(50); // Bonus for completing word
+        completeWord(targetWord); // Track completed word for Level 2 unlock
+        setIsWaitingForSign(false);
+      } else {
+        // Next letter to teach
+        setCurrentLetterIndex(currentLetterIndex + 1);
+        incrementScore(10);
       }
-    }
-  }, [targetWord, showSuccessLetter, verificationMode, currentLetterIndex, incrementScore, setVerificationMode, setCurrentLetterIndex, setIsWaitingForSign, completeWord]);
+    }, 1500);
+
+  }, [targetWord, showSuccessLetter, currentLetterIndex, incrementScore, setCurrentLetterIndex, setIsWaitingForSign, completeWord]);
 
   return (
     <main className="min-h-screen bg-slate-50 p-4 md:p-8">
