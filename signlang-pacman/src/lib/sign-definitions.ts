@@ -121,237 +121,198 @@ export const checkSign = (landmarks: Landmark[], word: string): boolean => {
     if (!landmarks || landmarks.length < 21) return false;
 
     // Landmarks indices
-    // 0: wrist
-    // 1-4: thumb (tip: 4)
-    // 5-8: index (tip: 8, base: 5)
-    // 9-12: middle (tip: 12, base: 9)
-    // 13-16: ring (tip: 16, base: 13)
-    // 17-20: pinky (tip: 20, base: 17)
-
     const wrist = landmarks[0];
+    const thumbTip = landmarks[4];
+    const thumbIp = landmarks[3];
+    const thumbMcp = landmarks[2];
+    const indexTip = landmarks[8];
+    const indexPip = landmarks[6];
     const indexBase = landmarks[5];
+    const middleTip = landmarks[12];
     const middleBase = landmarks[9];
+    const ringTip = landmarks[16];
+    const ringBase = landmarks[13];
+    const pinkyTip = landmarks[20];
+    const pinkyBase = landmarks[17];
+
     // Scale factor based on palm size (wrist to middle finger base)
     const handScale = dist(wrist, middleBase);
 
-    // Helper to get finger state
-    const getFingerState = (tipIdx: number, dipIdx: number, pipIdx: number, mcpIdx: number): FingerState => {
+    // Helper to get finger state (Open vs Curled)
+    const getFingerState = (tipIdx: number, pipIdx: number, mcpIdx: number): FingerState => {
         const tip = landmarks[tipIdx];
         const pip = landmarks[pipIdx]; // Middle joint
         const mcp = landmarks[mcpIdx]; // Base joint
 
-        // Check varying degrees of curl based on Y position (assuming hand is upright-ish)
-        // Note: Coordinates are normalized 0-1. Y increases downwards.
+        // Check varying degrees of curl based on relative distance to wrist
+        const dTipWrist = dist(tip, wrist);
+        const dMcpWrist = dist(mcp, wrist);
 
-        // Simple check: is tip below the base joint? (Folded down)
-        if (tip.y > mcp.y) return 'curled';
+        // If tip is significantly closer to wrist than base, it's curled
+        if (dTipWrist < dMcpWrist * 1.2) return 'curled'; // 1.2 factor allows for loose curl
 
-        // Check if tip is below the middle joint?
+        // Vertical check (if upright)
         if (tip.y > pip.y) return 'curled';
 
         return 'open';
     };
 
-    // Thumb state is trickier due to rotation. 
-    // We often check if tip is "far" from index base or "close"
-    const getThumbState = (): FingerState => {
-        const tip = landmarks[4];
-        const ip = landmarks[3];
-        const mcp = landmarks[2];
-        // If tip is 'inside' the palm width (x-axis) relative to base, it's curled?
-        // Simpler: Check distance to pinky base?
+    // Calculate states for 4 fingers
+    const indexState = getFingerState(8, 6, 5);
+    const middleState = getFingerState(12, 10, 9);
+    const ringState = getFingerState(16, 14, 13);
+    const pinkyState = getFingerState(20, 18, 17);
 
-        // For general "open" vs "closed":
-        // Open: Thumb stretched out.
-        // Closed: Thumb tucked in.
-
-        // Let's rely more on specific geometry in custom checks for thumb
-        return 'open'; // Default, override in custom checks usually
-    };
-
-    // Calculate states for 4 fingers (Index to Pinky)
-    // We use Y-axis comparison for simple curl detection (works for upright hand)
-    const indexState = landmarks[8].y > landmarks[6].y ? 'curled' : 'open'; // Compare tip to PIP (knuckle)
-    const middleState = landmarks[12].y > landmarks[10].y ? 'curled' : 'open';
-    const ringState = landmarks[16].y > landmarks[14].y ? 'curled' : 'open';
-    const pinkyState = landmarks[20].y > landmarks[18].y ? 'curled' : 'open';
+    // Explicit Thumb State Analysis
+    // "Open" = sticking out/up
+    // "Curled" = tucked in
+    const thumbState = (() => {
+        // Check if tip is far from palm center
+        const palmCenter = { x: (indexBase.x + pinkyBase.x) / 2, y: (indexBase.y + pinkyBase.y) / 2 };
+        const dThumb = dist(thumbTip, palmCenter as Landmark) / handScale;
+        return dThumb > 0.4 ? 'open' : 'curled';
+    })();
 
     const definitions: Record<string, SignDefinition> = {
         'A': {
             fingers: { thumb: 'open', index: 'curled', middle: 'curled', ring: 'curled', pinky: 'curled' },
             customCheck: (l, scale) => {
-                // Thumb should be sticking up/out, against the side of the index finger
-                const thumbTip = l[4];
-                const indexBase = l[5];
-                // Thumb tip should be above index base? Or at least not tucked under
-                return thumbTip.y < indexBase.y;
+                // A: Thumb is UP and resting against the SIDE of the index finger.
+                // It is NOT tucked over the fingers (that's S).
+                // Check verticality - thumb tip higher than index base
+                const thumbUp = thumbTip.y < indexBase.y;
+                return thumbUp;
             }
         },
         'B': {
             fingers: { thumb: 'curled', index: 'open', middle: 'open', ring: 'open', pinky: 'open' },
             customCheck: (l, scale) => {
-                // Thumb tucked across palm
-                const thumbTip = l[4];
-                const pinkyBase = l[17];
-                const indexBase = l[5];
-                // Thumb tip should be crossing towards pinky side
-                return Math.abs(thumbTip.x - indexBase.x) < 0.3 * scale || thumbTip.x > indexBase.x;
+                // B: Thumb tucked in front of palm, fingers straight up + together
+                const thumbInFront = Math.abs(thumbTip.x - indexBase.x) < 0.3 * scale;
+                return thumbInFront;
             }
         },
         'C': {
-            fingers: { thumb: 'open', index: 'open', middle: 'open', ring: 'open', pinky: 'open' },
+            fingers: { thumb: 'open', index: ['open', 'half', 'curled'], middle: ['open', 'half', 'curled'], ring: ['open', 'half', 'curled'], pinky: ['open', 'half', 'curled'] },
             customCheck: (l, scale) => {
-                // C shape: curved fingers. 
-                // Index and Thumb tips shouldn't touch, but be vertically aligned-ish
-                const thumbTip = l[4];
-                const indexTip = l[8];
+                // C: Claw shape. Fingers curved. Thumb and Index separated vertically but aligned.
                 const d = dist(thumbTip, indexTip) / scale;
-                return d > 0.35 && d < 0.9;
+                // Gap needed (unlike O)
+                return d > 0.25 && d < 0.9;
             }
         },
         'D': {
             fingers: { thumb: 'curled', index: 'open', middle: 'curled', ring: 'curled', pinky: 'curled' },
             customCheck: (l, scale) => {
-                // Thumb touches middle/ring tips? 
-                // Actually usually touches Middle tip + Ring tip.
-                // Index is the only one definitely UP.
-                return true;
+                // D: Index UP. Thumb touches Middle (and usually Ring) tips.
+                const dThumbMiddle = dist(thumbTip, middleTip) / scale;
+                const dThumbRing = dist(thumbTip, ringTip) / scale;
+                // Strict touch check
+                return dThumbMiddle < 0.25 || dThumbRing < 0.25;
             }
         },
         'E': {
             fingers: { thumb: 'curled', index: 'curled', middle: 'curled', ring: 'curled', pinky: 'curled' },
             customCheck: (l, scale) => {
-                const thumbTip = l[4];
-                const indexTip = l[8];
-                const middleTip = l[12];
-                const ringTip = l[16];
+                // E: Thumb tucked UNDER curled fingers.
+                // CRITICAL DISTINCTION: Thumb tip is lower than (or under) finger tips.
+                // Finger tips are touching the thumb or very close.
 
-                // E: Thumb is UNDER the fingers (thumb tip Y > fingertip Y means thumb is below in screen coords)
-                // Fingertips rest on TOP of thumb pad
-                const thumbUnder = thumbTip.y > indexTip.y || thumbTip.y > middleTip.y;
+                // Check all tips are bunched
+                const dIndex = dist(indexTip, thumbTip) / scale;
+                const dMiddle = dist(middleTip, thumbTip) / scale;
 
-                // Tips should be close to thumb (touching or near)
-                const dThumbIndex = dist(thumbTip, indexTip) / scale;
-                const dThumbMiddle = dist(thumbTip, middleTip) / scale;
-                const dThumbRing = dist(thumbTip, ringTip) / scale;
-                const tipsNearThumb = (dThumbIndex < 0.22 || dThumbMiddle < 0.22 || dThumbRing < 0.22);
+                // If fingers are "raised" significantly above thumb, it might be F
+                // In E, fingertips are resting on thumb.
+                // Vertical check: Index tip should not be much higher than thumb tip
 
-                // Both conditions must be true: thumb under AND tips near thumb
-                return thumbUnder && tipsNearThumb;
+                return dIndex < 0.25 && dMiddle < 0.25;
             }
         },
         'F': {
             fingers: { thumb: 'open', index: 'curled', middle: 'open', ring: 'open', pinky: 'open' },
             customCheck: (l, scale) => {
-                // Thumb and index touching (circle)
-                const thumbTip = l[4];
-                const indexTip = l[8];
-                const d = dist(thumbTip, indexTip) / scale;
-                // Index is technically "open" but curved to touch thumb, logic above might mark it curled if low enough.
-                // Let's relax finger requirements and rely on custom check
-                // Middle, Ring, Pinky MUST be up (open)
-                const middleUp = l[12].y < l[9].y;
-                const ringUp = l[16].y < l[13].y;
+                // F: OK sign. Thumb + Index touch. OTHERS ARE OPEN (Up).
+                const dTouch = dist(thumbTip, indexTip) / scale;
 
-                return d < 0.25 && middleUp && ringUp;
+                // Critical check vs E: Middle/Ring/Pinky MUST be open/up
+                const middleUp = middleTip.y < middleBase.y; // Standard "up" check
+
+                return dTouch < 0.25 && middleUp;
             }
         },
         'G': {
             fingers: { thumb: 'open', index: 'open', middle: 'curled', ring: 'curled', pinky: 'curled' },
             customCheck: (l, scale) => {
-                // Index and thumb pointing sideways (horizontal)
-                // Check if index is horizontal: x difference big, y difference small
-                const indexTip = l[8];
-                const indexBase = l[5];
-                const xDiff = Math.abs(indexTip.x - indexBase.x);
-                const yDiff = Math.abs(indexTip.y - indexBase.y);
-
-                return xDiff > yDiff; // horizontal-ish
+                // G: Horizontal Index and Thumb. Parallel.
+                // Check horizontal alignment
+                const isHorizontal = Math.abs(indexTip.y - indexBase.y) < Math.abs(indexTip.x - indexBase.x);
+                return isHorizontal;
             }
         },
         'H': {
             fingers: { thumb: 'open', index: 'open', middle: 'open', ring: 'curled', pinky: 'curled' },
             customCheck: (l, scale) => {
-                // Index and Middle horizontal
-                const indexTip = l[8];
-                const indexBase = l[5];
-                const xDiff = Math.abs(indexTip.x - indexBase.x);
-                const yDiff = Math.abs(indexTip.y - indexBase.y);
-                return xDiff > yDiff;
+                // H: Index + Middle horizontal.
+                const isHorizontal = Math.abs(indexTip.y - indexBase.y) < Math.abs(indexTip.x - indexBase.x);
+                return isHorizontal;
             }
         },
         'I': {
             fingers: { thumb: 'curled', index: 'curled', middle: 'curled', ring: 'curled', pinky: 'open' },
-            customCheck: (l, scale) => {
-                // Thumb usually tucked over fingers
-                return true;
-            }
+            customCheck: (l, scale) => true
         },
-        // J is dynamic (motion), we'll approximate as I with movement or just I for now?
-        // User asked for rigid checks, usually J is just 'I' static shape in simple recognizers or skipped.
-        // Let's support static 'I' shape for J as fallback or specific 'J' shape (pinky pointing down/scooped?)
         'J': {
             fingers: { thumb: 'curled', index: 'curled', middle: 'curled', ring: 'curled', pinky: 'open' },
-            customCheck: (l, scale) => true
+            customCheck: (l, scale) => true // Dynamic check handles movement
         },
         'K': {
             fingers: { thumb: 'open', index: 'open', middle: 'open', ring: 'curled', pinky: 'curled' },
             customCheck: (l, scale) => {
-                // K: Thumb comes up BETWEEN index and middle
-                // Index straight up
-                // Middle finger angled forward/out? 
-                const thumbTip = l[4];
-                const indexBase = l[5];
-                const middleBase = l[9];
-
-                // Thumb tip should be roughly between index and middle bases Y-wise or X-wise
-                return true;
+                // K: Thumb Up between Index and Middle.
+                // Index is straight up. Middle is angled forward.
+                const thumbBetween = (thumbTip.x > indexBase.x && thumbTip.x < middleBase.x) ||
+                    (thumbTip.y < indexBase.y); // Thumb is up
+                return thumbBetween;
             }
         },
         'L': {
             fingers: { thumb: 'open', index: 'open', middle: 'curled', ring: 'curled', pinky: 'curled' },
             customCheck: (l, scale) => {
-                // Index up, thumb out. 
-                const indexTip = l[8];
-                const indexBase = l[5];
-                const thumbTip = l[4];
-                // Index should be vertical
-                const indexIsUp = indexTip.y < indexBase.y;
-                // Thumb should be horizontal-ish (wide x dist from index base)
-                const thumbIsOut = Math.abs(thumbTip.x - indexBase.x) > 0.2 * scale;
-                return indexIsUp && thumbIsOut;
+                // L: Index Up, Thumb Out.
+                // Critical vs D: Thumb is NOT touching fingers.
+                const dThumbMiddle = dist(thumbTip, middleTip) / scale;
+
+                return dThumbMiddle > 0.3; // Must be gap
             }
         },
         'M': {
             fingers: { thumb: 'curled', index: 'curled', middle: 'curled', ring: 'curled', pinky: 'curled' },
             customCheck: (l, scale) => {
-                // M: Thumb under 3 fingers. Tip should be near Ring or Pinky base.
-                const thumbTip = l[4];
-                const ringBase = l[13];
-                const pinkyBase = l[17];
-                const distR = dist(thumbTip, ringBase) / scale;
-                const distP = dist(thumbTip, pinkyBase) / scale;
-                return distR < 0.4 || distP < 0.4;
+                // M: Thumb tucked under 3 fingers (Index, Middle, Ring).
+                // Thumb tip peeks out between Ring and Pinky? Or just under Ring.
+                // Visually: Thumb tip is near Ring/Pinky bases.
+                const dThumbRing = dist(thumbTip, ringBase) / scale;
+                const dThumbPinky = dist(thumbTip, pinkyBase) / scale;
+
+                return dThumbRing < 0.35 || dThumbPinky < 0.35;
             }
         },
         'N': {
             fingers: { thumb: 'curled', index: 'curled', middle: 'curled', ring: 'curled', pinky: 'curled' },
             customCheck: (l, scale) => {
-                // N: Thumb under 2 fingers. Tip should be near Middle finger base or Ring base.
-                const thumbTip = l[4];
-                const middleBase = l[9];
-                const ringBase = l[13];
-                const distM = dist(thumbTip, middleBase) / scale;
-                const distR = dist(thumbTip, ringBase) / scale;
-                return distM < 0.4 || distR < 0.4;
+                // N: Thumb tucked under 2 fingers (Index, Middle).
+                // Thumb tip near Middle/Ring gap.
+                const dThumbMiddle = dist(thumbTip, middleBase) / scale;
+                const dThumbRing = dist(thumbTip, ringBase) / scale;
+
+                return dThumbMiddle < 0.35 || dThumbRing < 0.35;
             }
         },
         'O': {
             fingers: { thumb: 'open', index: 'curled', middle: 'curled', ring: 'curled', pinky: 'curled' },
             customCheck: (l, scale) => {
-                // All tips touching thumb tip
-                const thumbTip = l[4];
-                const indexTip = l[8];
+                // O: All tips touching thumb.
                 const d = dist(thumbTip, indexTip) / scale;
                 return d < 0.25;
             }
@@ -359,83 +320,53 @@ export const checkSign = (landmarks: Landmark[], word: string): boolean => {
         'P': {
             fingers: { thumb: 'open', index: 'curled', middle: 'curled', ring: 'curled', pinky: 'curled' },
             customCheck: (l, scale) => {
-                // P is 'K' pointing down.
-                // wrist is higher than fingers?
-                const wrist = l[0];
-                const indexTip = l[8];
-
-                // Hand pointing down
+                // P: K shape pointed down.
                 return indexTip.y > wrist.y;
             }
         },
         'Q': {
             fingers: { thumb: 'open', index: 'curled', middle: 'curled', ring: 'curled', pinky: 'curled' },
             customCheck: (l, scale) => {
-                // Q is 'G' pointing down.
-                // Thumb and index pinch (or dont touch) but point down.
-                const wrist = l[0];
-                const indexTip = l[8];
+                // Q: G shape pointed down.
                 return indexTip.y > wrist.y;
             }
         },
         'R': {
             fingers: { thumb: 'curled', index: 'open', middle: 'open', ring: 'curled', pinky: 'curled' },
             customCheck: (l, scale) => {
-                // Index and Middle crossed.
-                const indexTip = l[8];
-                const middleTip = l[12];
-                // Check X crossover
-                // Normal hand: Index is Left of Middle (for right hand) or Right (left hand).
-                // Crossed: Order swaps?
-                // Simple dist check:
+                // R: Crossed fingers.
                 const d = dist(indexTip, middleTip) / scale;
-                return d < 0.15; // Very close
+                return d < 0.15; // Very close/crossed
             }
         },
         'S': {
             fingers: { thumb: 'curled', index: 'curled', middle: 'curled', ring: 'curled', pinky: 'curled' },
             customCheck: (l, scale) => {
-                const thumbTip = l[4];
-                const indexTip = l[8];
-                const middleTip = l[12];
-                const ringTip = l[16];
+                // S: Thumb wrapped OVER fingers (Fist).
+                // Unlike A (side) or E (under), Thumb crosses the fingers.
+                // Check if thumb tip is crossing the Index/Middle finger columns
 
-                // S: Thumb wrapped OVER fingers (like a fist).
-                // Key differentiator from E:
-                // 1. Thumb tip is NOT touching finger tips (it's across the phalanges).
-                // 2. Thumb tip is roughly crossing the middle finger's X coordinate.
+                // Distance from palm center - S thumb is more central
+                const centerDist = dist(thumbTip, { x: (indexBase.x + pinkyBase.x) / 2, y: (indexBase.y + pinkyBase.y) / 2 } as Landmark) / scale;
 
-                const dThumbIndex = dist(thumbTip, indexTip) / scale;
-                const dThumbMiddle = dist(thumbTip, middleTip) / scale;
-
-                // Distinguish from E: Tips are NOT touching thumb
-                const notTouchingTips = dThumbIndex > 0.23 && dThumbMiddle > 0.23;
-
-                // Check if thumb is crossing
-                // This is hard, but we can check if thumb tip is overlapping the X-columns of index/middle
-                const thumbCrossing = Math.abs(thumbTip.x - middleTip.x) < 0.2 || Math.abs(thumbTip.x - indexTip.x) < 0.2; // This is vague
-
-                return notTouchingTips && thumbCrossing;
+                return centerDist < 0.3;
             }
         },
         'T': {
             fingers: { thumb: 'curled', index: 'curled', middle: 'curled', ring: 'curled', pinky: 'curled' },
             customCheck: (l, scale) => {
-                // T: Thumb under 1 finger. Tip should be near Index base or Middle base.
-                const thumbTip = l[4];
-                const indexBase = l[5];
-                const middleBase = l[9];
-                const distI = dist(thumbTip, indexBase) / scale;
-                const distM = dist(thumbTip, middleBase) / scale;
-                return distI < 0.4 || distM < 0.4;
+                // T: Thumb under 1 finger (Index).
+                // Thumb tip near Index Base.
+                const dThumbIndex = dist(thumbTip, indexBase) / scale;
+                const dThumbMiddle = dist(thumbTip, middleBase) / scale;
+
+                return dThumbIndex < 0.35 || dThumbMiddle < 0.35;
             }
         },
         'U': {
             fingers: { thumb: 'curled', index: 'open', middle: 'open', ring: 'curled', pinky: 'curled' },
             customCheck: (l, scale) => {
-                // Index and Middle straight up and TOGETHER
-                const indexTip = l[8];
-                const middleTip = l[12];
+                // U: Index/Middle up and TOGETHER
                 const d = dist(indexTip, middleTip) / scale;
                 return d < 0.15;
             }
@@ -443,11 +374,9 @@ export const checkSign = (landmarks: Landmark[], word: string): boolean => {
         'V': {
             fingers: { thumb: 'curled', index: 'open', middle: 'open', ring: 'curled', pinky: 'curled' },
             customCheck: (l, scale) => {
-                // Index and Middle straight up and SPREAD
-                const indexTip = l[8];
-                const middleTip = l[12];
+                // V: Index/Middle up and SPREAD
                 const d = dist(indexTip, middleTip) / scale;
-                return d > 0.2; // Significant gap
+                return d > 0.2;
             }
         },
         'W': {
@@ -457,27 +386,22 @@ export const checkSign = (landmarks: Landmark[], word: string): boolean => {
         'X': {
             fingers: { thumb: 'curled', index: 'curled', middle: 'curled', ring: 'curled', pinky: 'curled' },
             customCheck: (l, scale) => {
-                // Index is hooked (half curled).
-                // Difficult to distinguish from A/S/E without depth
-                // But index knuckle (PIP) should be up, tip down?
-                const indexPip = l[6];
-                const indexTip = l[8];
-                return indexPip.y < indexTip.y; // Hooked down? Depends on rotation.
+                // X: Index hooked.
+                return indexTip.y > indexPip.y; // curled down
             }
         },
         'Y': {
             fingers: { thumb: 'open', index: 'curled', middle: 'curled', ring: 'curled', pinky: 'open' },
             customCheck: (l, scale) => {
-                const thumbTip = l[4];
-                const pinkyTip = l[20];
+                // Y: Thumb + Pinky out.
                 const d = dist(thumbTip, pinkyTip) / scale;
-                return d > 0.5; // Wide spread
+                return d > 0.5;
             }
         },
         'Z': {
             fingers: { thumb: 'curled', index: 'open', middle: 'curled', ring: 'curled', pinky: 'curled' },
             customCheck: (l, scale) => {
-                // Index pointing (usually at camera or side)
+                // Z is motion, but static Z is index pointing
                 return true;
             }
         },

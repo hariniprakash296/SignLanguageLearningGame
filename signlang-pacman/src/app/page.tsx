@@ -21,7 +21,6 @@
  * - HandTracking: Webcam sign detection
  * - SignDisplay: ASL sign images
  * - SignPopup: Floating notification
- * - VideoTranslator: YouTube integration
  * - SignTranslator: Sign-to-sign translation
  * 
  * GAME MODES:
@@ -48,6 +47,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trophy, BookOpen, GraduationCap, X, Globe, Star } from "lucide-react";
+import { getSignatureForWord } from "@/lib/gesture-recognition";
 
 // * Dynamic imports for client-side only components (use SSR: false for browser APIs)
 const HandTracking = dynamic(() => import("@/components/game/HandTracking").then(mod => mod.HandTracking), { ssr: false });
@@ -78,8 +78,11 @@ export default function Home() {
   const [showSuccessLetter, setShowSuccessLetter] = React.useState(false);
 
   // Get the current letter based on phase
-  // Get the current letter based on phase
   const activeLetter = (targetWord && targetWord[currentLetterIndex]) || "";
+
+  // Get movement signature if it's an initialized word (Level 2)
+  const movementSignature = targetWord ? getSignatureForWord(targetWord) : undefined;
+  const activeMovement = (level === 2 && movementSignature) ? movementSignature.expectedMovement.type : undefined;
 
   const handleLetterMatch = React.useCallback((letter: string) => {
     if (!targetWord || showSuccessLetter) return;
@@ -303,11 +306,21 @@ export default function Home() {
                     <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest">
                       {verificationMode === 'teaching' ? 'Demonstration' : 'Reference'}
                     </h3>
+
+                    <div className="flex justify-between items-center mb-1">
+                      {movementSignature && level === 2 ? (
+                        <div className="bg-purple-100 text-purple-700 px-3 py-1 text-xs font-bold rounded-full border border-purple-200 uppercase tracking-tight flex items-center gap-1">
+                          <BookOpen className="w-3 h-3" />
+                          Family: {movementSignature.family.replace(/-/g, ' ')}
+                        </div>
+                      ) : <div></div>}
+                    </div>
                     <div className="aspect-video bg-slate-100 rounded-xl flex items-center justify-center relative overflow-hidden group">
                       {showAssistance ? (
                         <SignDisplay
                           sign={activeLetter}
                           showAnimation={false}
+                          movement={activeMovement}
                         />
                       ) : (
                         <div className="flex flex-col items-center justify-center text-center p-8">

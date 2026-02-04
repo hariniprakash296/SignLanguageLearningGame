@@ -34,6 +34,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { HandLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 import { checkSign } from "@/lib/sign-definitions";
+import { GestureRecognitionEngine, getSignatureForWord } from "@/lib/gesture-recognition";
 
 /**
  * * Props for HandTracking component
@@ -77,24 +78,22 @@ export const HandTracking: React.FC<HandTrackingProps> = ({ onGestureMatch, targ
     const [landmarker, setLandmarker] = useState<HandLandmarker | null>(null);
     const [progress, setProgress] = useState(0);       // * 0-100 progress bar value
     const [status, setStatus] = useState<'WAITING' | 'ANALYZING' | 'MATCH' | 'RETRY'>('WAITING');
+    const [movementFeedback, setMovementFeedback] = useState<string | null>(null);
 
-    // * Refs for async state (avoids stale closures in RAF loop)
+    // * Refs for async state
     const isProcessingRef = useRef(false);             // * Prevents double-triggers
+    const gestureEngineRef = useRef<GestureRecognitionEngine | null>(null);
 
     /**
      * * Effect: Initialize MediaPipe and Webcam
-     * 
-     * Runs once on component mount.
-     * 1. Loads MediaPipe WASM files from CDN
-     * 2. Creates HandLandmarker with GPU acceleration
-     * 3. Starts webcam stream
-     * 
-     * CLEANUP: Stops webcam and closes landmarker on unmount
      */
     useEffect(() => {
         let handLandmarker: HandLandmarker;
         let stream: MediaStream;
         let isCancelled = false;
+
+        // Initialize Gesture Engine
+        gestureEngineRef.current = new GestureRecognitionEngine();
 
         const init = async () => {
             try {
@@ -139,6 +138,7 @@ export const HandTracking: React.FC<HandTrackingProps> = ({ onGestureMatch, targ
             isCancelled = true;
             if (stream) stream.getTracks().forEach(track => track.stop());
             if (handLandmarker) handLandmarker.close();
+            gestureEngineRef.current?.reset();
         };
     }, []);
 
@@ -151,8 +151,10 @@ export const HandTracking: React.FC<HandTrackingProps> = ({ onGestureMatch, targ
         // Reset state when targetWord changes
         setStatus('WAITING');
         setProgress(0);
+        setMovementFeedback(null);
         isProcessingRef.current = false;
         lastVideoTimeRef.current = -1;
+        gestureEngineRef.current?.reset();
 
         let animationFrameId: number;
         const ctx = canvasRef.current.getContext('2d')!;
@@ -165,8 +167,6 @@ export const HandTracking: React.FC<HandTrackingProps> = ({ onGestureMatch, targ
                 try {
                     const timestamp = video.currentTime * 1000;
 
-                    // Only run detection if the video has actually progressed to a new frame
-                    // MediaPipe requires strictly increasing timestamps in VIDEO mode.
                     if (timestamp > lastVideoTimeRef.current) {
                         lastVideoTimeRef.current = timestamp;
                         const results = landmarker.detectForVideo(video, timestamp);
@@ -177,6 +177,7 @@ export const HandTracking: React.FC<HandTrackingProps> = ({ onGestureMatch, targ
                             const landmarks = results.landmarks[0];
                             setStatus('ANALYZING');
 
+                            // Draw landmarks
                             for (const point of landmarks) {
                                 ctx.fillStyle = "#22c55e";
                                 ctx.beginPath();
@@ -184,13 +185,51 @@ export const HandTracking: React.FC<HandTrackingProps> = ({ onGestureMatch, targ
                                 ctx.fill();
                             }
 
-                            if (checkGestureHeuristic(landmarks, targetWord)) {
+                            let isMatch = false;
+
+                            // LOGIC BRANCH: Initialized Sign (Level 2) vs Static Letter (Level 1)
+                            if (targetWord && targetWord.length > 1) {
+                                // --- Level 2: Initialized Sign ---
+                                const signature = getSignatureForWord(targetWord);
+
+                                if (signature) {
+                                    // 1. Check if identifying letter matches
+                                    const letterMatches = checkSign(landmarks, signature.letter);
+
+                                    // 2. Feed to engine for movement detection
+                                    gestureEngineRef.current?.addFrame(
+                                        landmarks as any,
+                                        letterMatches ? signature.letter : null,
+                                        letterMatches ? 0.9 : 0
+                                    );
+
+                                    const result = gestureEngineRef.current?.recognize();
+
+                                    // 3. Check initialized sign match
+                                    if (result?.initializedSign?.word === targetWord) {
+                                        isMatch = true;
+                                        setMovementFeedback("Perfect movement!");
+                                    } else if (letterMatches) {
+                                        // Letter good, checking movement
+                                        const moveType = signature.expectedMovement.type;
+                                        setMovementFeedback(`Handshape good! Now add ${moveType} movement.`);
+                                    } else {
+                                        setMovementFeedback(`Show letter ${signature.letter} first`);
+                                    }
+                                }
+                            } else {
+                                // --- Level 1: Static Letter ---
+                                isMatch = checkSign(landmarks, targetWord!);
+                                setMovementFeedback(null);
+                            }
+
+                            if (isMatch) {
                                 setStatus('MATCH');
                                 setProgress(prev => {
                                     const next = prev + 12;
                                     if (next >= 100) {
                                         isProcessingRef.current = true;
-                                        setTimeout(() => onGestureMatch(targetWord), 10);
+                                        setTimeout(() => onGestureMatch(targetWord!), 10);
                                         return 100;
                                     }
                                     return next;
@@ -201,6 +240,7 @@ export const HandTracking: React.FC<HandTrackingProps> = ({ onGestureMatch, targ
                         } else {
                             setStatus('WAITING');
                             setProgress(prev => Math.max(0, prev - 0.5));
+                            setMovementFeedback(null);
                         }
                     }
                 } catch (err) {
@@ -217,7 +257,7 @@ export const HandTracking: React.FC<HandTrackingProps> = ({ onGestureMatch, targ
         };
     }, [landmarker, targetWord, onGestureMatch]);
 
-    // Imported checkSign from lib
+    // Backward compatibility helper
     const checkGestureHeuristic = (landmarks: any[], word: string): boolean => {
         return checkSign(landmarks, word);
     };
@@ -283,6 +323,10 @@ export const HandTracking: React.FC<HandTrackingProps> = ({ onGestureMatch, targ
                         {status === 'WAITING' ? (
                             <span className="flex items-center justify-center gap-2">
                                 📷 Please move your hand into frame
+                            </span>
+                        ) : movementFeedback ? (
+                            <span className="text-purple-600">
+                                ℹ️ {movementFeedback}
                             </span>
                         ) : (
                             <span className="text-amber-600">

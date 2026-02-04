@@ -852,21 +852,21 @@ The **SignLang Pacman** system acts as an educational intermediary between learn
 │                     SYSTEM CONTEXT                          │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│    ┌──────────┐                           ┌──────────┐     │
-│    │  Learner │◄──────────────────────────│ YouTube  │     │
-│    │  (User)  │                           │   API    │     │
-│    └────┬─────┘                           └────┬─────┘     │
-│         │                                      │           │
-│         │     ┌──────────────────────┐         │           │
-│         └────►│  SignLang Pacman     │◄────────┘           │
-│               │  (Web Application)   │                     │
-│               └──────────┬───────────┘                     │
-│                          │                                 │
-│                          ▼                                 │
-│               ┌──────────────────────┐                     │
-│               │   ASL Sign Assets    │                     │
-│               │   (Images/SVGs)      │                     │
-│               └──────────────────────┘                     │
+│    ┌──────────┐                                             │
+│    │  Learner │                                             │
+│    │  (User)  │                                             │
+│    └────┬─────┘                                             │
+│         │                                                   │
+│         │     ┌──────────────────────┐                      │
+│         └────►│  SignLang Pacman     │                      │
+│               │  (Web Application)   │                      │
+│               └──────────┬───────────┘                      │
+│                          │                                  │
+│                          ▼                                  │
+│               ┌──────────────────────┐                      │
+│               │   ASL Sign Assets    │                      │
+│               │   (Images/SVGs)      │                      │
+│               └──────────────────────┘                      │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -894,12 +894,12 @@ The **SignLang Pacman** system acts as an educational intermediary between learn
 │                           │                                │
 │                           ▼                                │
 │  ┌─────────────────────────────────────────────────────┐   │
-│  │              BACKEND (Flask/Python)                 │   │
+│  │              BACKEND (Next.js API)                  │   │
 │  │                                                     │   │
-│  │  ┌─────────────────┐  ┌─────────────────────────┐  │   │
-│  │  │ YouTube Router  │  │ Sign Data Router        │  │   │
-│  │  │ /api/youtube/*  │  │ /api/sign/*             │  │   │
-│  │  └─────────────────┘  └─────────────────────────┘  │   │
+│  │             ┌─────────────────────────┐             │   │
+│  │             │ Interpreter Agent API   │             │   │
+│  │             │ /api/agents/interpreter │             │   │
+│  │             └─────────────────────────┘             │   │
 │  └─────────────────────────────────────────────────────┘   │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
@@ -969,28 +969,46 @@ The **SignLang Pacman** system acts as an educational intermediary between learn
                                 └──────────────┘
 ```
 
-## YouTube Mode Data Flow
+## Gemini Vision Integration Data Flow
 
+```mermaid
+sequenceDiagram
+    participant Camera
+    participant Frontend
+    participant API as API Route
+    participant Gemini as Gemini Vision API
+
+    Camera->>Frontend: Video Frame (Base64)
+    Frontend->>API: POST /api/interpreter
+    Note right of Frontend: Checks Rate Limit (2s)
+    
+    rect rgb(20, 20, 20)
+        Note right of API: Vision Processing
+        API->>Gemini: Image + Context Prompt
+        Gemini->>API: JSON {recognizedSign, translation}
+    end
+
+    API->>Frontend: Result + Metadata
+    Frontend->>Frontend: Update UI & History
 ```
-┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
-│  User    │    │ Frontend │    │  Flask   │    │ YouTube  │
-│  Inputs  │───▶│  Sends   │───▶│ Backend  │───▶│Transcript│
-│   URL    │    │ Request  │    │ Fetches  │    │   API    │
-└──────────┘    └──────────┘    └──────────┘    └──────────┘
-                                                      │
-                     ┌────────────────────────────────┘
-                     ▼
-              ┌──────────────┐
-              │  Parse &     │
-              │  Return JSON │
-              └──────┬───────┘
-                     │
-                     ▼
-              ┌──────────────┐
-              │ Frontend     │
-              │ Displays     │
-              │ Signs Synced │
-              └──────────────┘
+
+## Sign Recognition Pipeline Flow
+
+```mermaid
+graph TD
+    A[Camera Input] --> B{Mode?}
+    B -->|Vision API| C[Capture Frame]
+    B -->|Offline| D[MediaPipe Landmarks]
+    
+    C --> E[Base64 Encode]
+    E --> F[Send to Gemini]
+    F --> G[Recognize & Translate]
+    
+    D --> H[Geometric Analysis]
+    H --> I[Match Sign Definitions]
+    
+    G --> J[Display Result]
+    I --> J
 ```
 
 ---
@@ -1085,6 +1103,41 @@ Game progress is saved to `localStorage`:
 **Not persisted** (resets on refresh):
 - Score
 - Current game session
+
+---
+
+# 🧠 5. AI & Recognition Logic
+
+## Real-time vs. Vision API
+The system uses a hybrid recognition approach to balance speed, cost, and accuracy.
+
+| Approach | Technology | Pros | Cons |
+|----------|------------|------|------|
+| **Offline (Local)** | MediaPipe Landmarks | Zero latency, Private, Free | Limited to geometric analysis |
+| **Online (Vision)**| Gemini 2.0 Flash | Extremely accurate, Contextual | High latency (~2s), API Costs |
+
+## Initialized Signs (Level 2)
+Level 2 introduces "Initialized Signs" - signs that combine a static handshape (representing a letter) with a specific movement pattern.
+
+### Movement Patterns
+The system uses a `MovementAnalyzer` that tracks the palm center over a 2-second buffer (60 frames).
+
+| Pattern | Logic | Example Sign |
+|---------|-------|--------------|
+| **Arc** | Horizontal or Vertical semicircle (detects palm curvature) | **FAMILY**, **TEAM** |
+| **Circular**| 360° rotation (detects angle change relative to center) | **GROUP**, **CLASS** |
+| **Shake** | Rapid horizontal direction reversals (frequency count) | **BLUE**, **GREEN** |
+| **Tap** | Sudden velocity spikes and stops | **WATER** |
+| **Forward** | Significant Z-axis change (depth) with X/Y stability | **TRY**, **TEACHER** |
+
+### Fix: Arc Detection (Feb 2026)
+Initially, the system only detected vertical arcs. We updated `detectArc` in `movement-analyzer.ts` to support horizontal arcs by checking both `hasVerticalArc` and `hasHorizontalArc` using midpoint deviation from the start-end line.
+
+## API Rate Limiting
+To manage Gemini API costs and stay within the free tier quota (15 RPM), we implemented two-tier rate limiting:
+
+1. **Frontend Throttle**: The `SignTranslator` component only triggers a Vision API call every **5 seconds** (max 12 RPM).
+2. **Backend Guard**: The `/api/agents/interpreter` endpoint enforces a strict session-based cooldown.
 
 ---
 

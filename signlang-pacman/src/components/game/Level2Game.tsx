@@ -41,6 +41,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Trophy, ArrowRight, Check, Star, BookOpen, Users, Lightbulb, Sparkles } from 'lucide-react';
+import { MovementVisualizer } from './MovementVisualizer';
+import { getSignatureForWord } from '@/lib/gesture-recognition';
 
 const HandTracking = dynamic(() => import('./HandTracking').then(mod => mod.HandTracking), { ssr: false });
 const SignDisplay = dynamic(() => import('../shared/SignDisplay').then(mod => mod.SignDisplay), { ssr: false });
@@ -78,15 +80,20 @@ export const Level2Game: React.FC = () => {
     const currentSign = familyWords[state.currentWordIndex];
 
     // Handle letter match from hand tracking
-    const handleLetterMatch = useCallback((letter: string) => {
+    // Handle sign match (letter + movement)
+    const handleSignMatch = useCallback((match: string) => {
         if (!currentSign || state.phase !== 'practice') return;
 
-        if (letter === currentSign.letter) {
+        // Check if matched word equals target word
+        if (match === currentSign.word) {
             setState(prev => ({ ...prev, letterMatched: true }));
             incrementScore(50);
 
             setTimeout(() => {
-                setCompletedWords(prev => [...prev, currentSign.word]);
+                setCompletedWords(prev => {
+                    if (prev.includes(currentSign.word)) return prev;
+                    return [...prev, currentSign.word];
+                });
 
                 // Check if more words in this family
                 if (state.currentWordIndex + 1 < familyWords.length) {
@@ -365,8 +372,15 @@ export const Level2Game: React.FC = () => {
                                 </div>
                                 <div className="bg-green-50 rounded-lg p-4">
                                     <p className="text-sm text-green-600 font-medium mb-1">Step 2: Movement</p>
-                                    <p className="text-lg text-slate-700">{currentSign.movement}</p>
+                                    <div className="flex items-center gap-4">
+                                        <MovementVisualizer
+                                            type={getSignatureForWord(currentSign.word)?.expectedMovement.type || 'static'}
+                                            className="h-24 w-24 shrink-0 bg-white shadow-sm"
+                                        />
+                                        <p className="text-lg text-slate-700">{currentSign.movement}</p>
+                                    </div>
                                 </div>
+
                             </div>
 
                             <Button
@@ -418,8 +432,8 @@ export const Level2Game: React.FC = () => {
                         </CardHeader>
                         <CardContent className="p-4">
                             <HandTracking
-                                targetWord={currentSign.letter}
-                                onGestureMatch={handleLetterMatch}
+                                targetWord={currentSign.word}
+                                onGestureMatch={handleSignMatch}
                             />
                         </CardContent>
                     </Card>
@@ -490,8 +504,8 @@ export const Level2Game: React.FC = () => {
             {completedWords.length > 0 && !['welcome', 'all_complete'].includes(state.phase) && (
                 <div className="flex flex-wrap gap-2">
                     <span className="text-sm text-slate-500 mr-2">Mastered:</span>
-                    {completedWords.map(word => (
-                        <span key={word} className="px-2 py-1 bg-green-100 text-green-700 rounded text-sm font-medium">
+                    {completedWords.map((word, i) => (
+                        <span key={`${word}-${i}`} className="px-2 py-1 bg-green-100 text-green-700 rounded text-sm font-medium">
                             {word} ✓
                         </span>
                     ))}

@@ -143,13 +143,15 @@ interface SignDisplayProps {
     size?: 'sm' | 'md' | 'lg';
     showDescription?: boolean;
     showAnimation?: boolean;
+    movement?: string; // e.g., 'arc', 'circular', 'shake', 'tap'
 }
 
 export const SignDisplay: React.FC<SignDisplayProps> = ({
     sign,
     size = 'md',
     showDescription = true,
-    showAnimation = false
+    showAnimation = false,
+    movement
 }) => {
     const [imageError, setImageError] = useState(false);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -218,6 +220,13 @@ export const SignDisplay: React.FC<SignDisplayProps> = ({
                     )}
                 </div>
 
+                {/* Movement Overlay Guide */}
+                {movement && movement !== 'static' && (
+                    <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                        <MovementGuide type={movement} />
+                    </div>
+                )}
+
                 {/* Progress dot for word sequencing */}
                 {isWord && (
                     <div className="absolute bottom-3 flex gap-1">
@@ -237,4 +246,78 @@ export const SignDisplay: React.FC<SignDisplayProps> = ({
             )}
         </div>
     );
+};
+
+/**
+ * * Helper component to draw animated movement paths
+ */
+const MovementGuide: React.FC<{ type: string }> = ({ type }) => {
+    switch (type) {
+        case 'arc':
+            return (
+                <svg viewBox="0 0 100 100" className="w-full h-full opacity-90 drop-shadow-lg z-10 relative">
+                    <path
+                        d="M20,50 Q50,20 80,50"
+                        fill="none"
+                        stroke="#2563eb"
+                        strokeWidth="6"
+                        strokeLinecap="round"
+                        strokeDasharray="12 6"
+                        className="animate-pulse"
+                    >
+                        <animate
+                            attributeName="stroke-dashoffset"
+                            from="100"
+                            to="0"
+                            dur="1.5s"
+                            repeatCount="indefinite"
+                        />
+                    </path>
+                    <path d="M72,42 L80,50 L72,58" fill="none" stroke="#2563eb" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+            );
+        case 'circular':
+            return (
+                <svg viewBox="0 0 100 100" className="w-full h-full opacity-90 drop-shadow-lg z-10 relative">
+                    <circle
+                        cx="50"
+                        cy="50"
+                        r="30"
+                        fill="none"
+                        stroke="#2563eb"
+                        strokeWidth="6"
+                        strokeDasharray="12 6"
+                    >
+                        <animateTransform
+                            attributeName="transform"
+                            type="rotate"
+                            from="0 50 50"
+                            to="360 50 50"
+                            dur="3s"
+                            repeatCount="indefinite"
+                        />
+                    </circle>
+                    <path d="M80,50 L75,45 L85,45" fill="none" stroke="#2563eb" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+            );
+        case 'shake':
+            return (
+                <div className="flex gap-4 items-center animate-bounce h-12 w-48 bg-blue-100/90 rounded-full border-2 border-blue-500 justify-center shadow-xl z-10 relative">
+                    <span className="text-blue-700 font-black text-sm uppercase">Shake Hand</span>
+                </div>
+            );
+        case 'tap':
+            return (
+                <div className="h-24 w-24 border-8 border-blue-500 rounded-full animate-ping opacity-40 z-10 relative" />
+            );
+        case 'forward':
+            return (
+                <svg viewBox="0 0 100 100" className="w-full h-full opacity-90 translate-y-10 drop-shadow-lg z-10 relative">
+                    <path d="M50,80 L50,20" fill="none" stroke="#2563eb" strokeWidth="8" strokeDasharray="12 6" />
+                    <path d="M35,35 L50,20 L65,35" fill="none" stroke="#2563eb" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+            );
+        default:
+            return null;
+    }
 };
