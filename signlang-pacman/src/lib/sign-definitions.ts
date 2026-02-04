@@ -1,23 +1,121 @@
+/**
+ * =============================================================================
+ * FILE: sign-definitions.ts
+ * =============================================================================
+ * 
+ * C4 MODEL CONTEXT:
+ * - Container: Frontend (Next.js/React Application)
+ * - Component: SignChecker (Hand Gesture Recognition)
+ * - Responsibility: ASL sign verification using MediaPipe hand landmarks
+ * 
+ * DATA FLOW:
+ * 1. HandTracking.tsx captures webcam → MediaPipe processes hand
+ * 2. MediaPipe returns 21 landmarks (x,y,z coordinates)
+ * 3. checkSign() receives landmarks + target letter/word
+ * 4. Returns true if hand matches the expected ASL sign
+ * 
+ * DEPENDENCIES:
+ * - Called by: src/components/game/HandTracking.tsx
+ * - Uses: MediaPipe landmark data (21 points per hand)
+ * 
+ * KEY CONCEPTS:
+ * - Landmarks: 21 points on the hand (wrist, finger joints, tips)
+ * - Finger states: 'open' (extended), 'curled' (bent), 'half' (partial)
+ * - Custom checks: Additional geometry validation per letter
+ * 
+ * =============================================================================
+ * MEDIAPIPE LANDMARK INDICES (21 points):
+ * =============================================================================
+ * 
+ *   0 = Wrist (base of hand)
+ * 
+ *   THUMB:     1 = CMC, 2 = MCP, 3 = IP, 4 = TIP
+ *   INDEX:     5 = MCP, 6 = PIP, 7 = DIP, 8 = TIP
+ *   MIDDLE:    9 = MCP, 10 = PIP, 11 = DIP, 12 = TIP
+ *   RING:      13 = MCP, 14 = PIP, 15 = DIP, 16 = TIP
+ *   PINKY:     17 = MCP, 18 = PIP, 19 = DIP, 20 = TIP
+ * 
+ *   TIP = fingertip, PIP = middle knuckle, MCP = base knuckle
+ * 
+ * COORDINATE SYSTEM:
+ *   - X: 0 (left) to 1 (right)
+ *   - Y: 0 (top) to 1 (bottom) - NOTE: Y increases downward!
+ *   - Z: Depth (negative = closer to camera)
+ * 
+ * =============================================================================
+ */
 
+/**
+ * * Landmark interface - single point from MediaPipe
+ * Represents one of 21 tracked points on the hand
+ */
 export interface Landmark {
-    x: number;
-    y: number;
-    z: number;
+    x: number;  // * Horizontal position (0-1, normalized)
+    y: number;  // * Vertical position (0-1, Y increases downward!)
+    z: number;  // * Depth (negative = closer to camera)
 }
 
+/**
+ * * Finger state types
+ * - 'open': Finger is extended/straight
+ * - 'curled': Finger is bent/folded
+ * - 'half': Finger is partially bent
+ */
 export type FingerState = 'open' | 'curled' | 'half';
+
+/**
+ * * Finger name type for type safety
+ */
 export type FingerName = 'thumb' | 'index' | 'middle' | 'ring' | 'pinky';
 
+/**
+ * * Sign definition structure
+ * Describes what hand shape is expected for each ASL letter/word
+ * 
+ * @property fingers - Expected state for each finger
+ * @property customCheck - Optional additional geometry validation
+ */
 export interface SignDefinition {
     fingers: Record<FingerName, FingerState | FingerState[]>;
-    // Optional custom checks function
+    // * Optional custom checks function for complex geometry
     customCheck?: (landmarks: Landmark[], handScale: number) => boolean;
 }
 
-// Helper to calculate distance between two landmarks
+/**
+ * * Calculate Euclidean distance between two landmarks
+ * Used for checking if fingertips are touching, etc.
+ * 
+ * @param a - First landmark point
+ * @param b - Second landmark point
+ * @returns Distance in normalized units (0-1 scale)
+ */
 const dist = (a: Landmark, b: Landmark): number => {
     return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
 };
+
+/**
+ * =============================================================================
+ * checkSign() - Main Sign Verification Function
+ * =============================================================================
+ * 
+ * Determines if the user's hand matches the expected ASL sign.
+ * 
+ * ALGORITHM:
+ * 1. Calculate hand scale (for distance normalization)
+ * 2. Determine each finger's state (open/curled)
+ * 3. Compare against SignDefinition for target letter
+ * 4. Run any custom geometry checks
+ * 5. Return true if all checks pass
+ * 
+ * @param landmarks - Array of 21 MediaPipe hand landmarks
+ * @param word - The letter or word to check (e.g., "A", "HELLO")
+ * @returns true if hand matches the sign, false otherwise
+ * 
+ * @example
+ * if (checkSign(landmarks, 'A')) {
+ *   console.log('User signed the letter A correctly!');
+ * }
+ */
 
 export const checkSign = (landmarks: Landmark[], word: string): boolean => {
     if (!landmarks || landmarks.length < 21) return false;

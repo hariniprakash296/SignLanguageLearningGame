@@ -1,3 +1,42 @@
+/**
+ * =============================================================================
+ * FILE: page.tsx (Main Application Page)
+ * =============================================================================
+ * 
+ * C4 MODEL CONTEXT:
+ * - Container: Frontend (Next.js/React Application)
+ * - Component: MainPage (Application Shell / Page Router)
+ * - Responsibility: Main layout, tab navigation, sign overlay orchestration
+ * 
+ * DATA FLOW:
+ * 1. User plays Pacman game (GameCanvas) → eats pellet → triggers sign learning
+ * 2. Sign overlay appears (isWaitingForSign = true)
+ * 3. User practices sign (HandTracking) → onGestureMatch called
+ * 4. Progress tracked → word completed → overlay closes
+ * 5. Zustand store updates → UI re-renders
+ * 
+ * CHILD COMPONENTS:
+ * - GameCanvas: Pacman game (Level 1)
+ * - Level2Game: Word spelling game (Level 2)
+ * - HandTracking: Webcam sign detection
+ * - SignDisplay: ASL sign images
+ * - SignPopup: Floating notification
+ * - VideoTranslator: YouTube integration
+ * - SignTranslator: Sign-to-sign translation
+ * 
+ * GAME MODES:
+ * - Level 1: Teach letters with hints, complete words
+ * - Level 2: Spell words without hints (unlocks after 3 words + 20 letters)
+ * 
+ * KEY STATE:
+ * - isWaitingForSign: Controls sign overlay visibility
+ * - targetWord: Current word being practiced
+ * - currentLetterIndex: Which letter in the word (0-indexed)
+ * - level2Unlocked: Whether Level 2 is accessible
+ * 
+ * =============================================================================
+ */
+
 "use client";
 
 import React from 'react';
@@ -11,6 +50,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Trophy, BookOpen, Youtube, GraduationCap, X, Globe, Star } from "lucide-react";
 
+// * Dynamic imports for client-side only components (use SSR: false for browser APIs)
 const HandTracking = dynamic(() => import("@/components/game/HandTracking").then(mod => mod.HandTracking), { ssr: false });
 const SignDisplay = dynamic(() => import("@/components/shared/SignDisplay").then(mod => mod.SignDisplay), { ssr: false });
 const SignTranslator = dynamic(() => import("@/components/translate/SignTranslator").then(mod => mod.SignTranslator), { ssr: false });

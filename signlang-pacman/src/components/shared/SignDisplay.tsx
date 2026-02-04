@@ -1,14 +1,52 @@
+/**
+ * =============================================================================
+ * FILE: SignDisplay.tsx
+ * =============================================================================
+ * 
+ * C4 MODEL CONTEXT:
+ * - Container: Frontend (Next.js/React Application)
+ * - Component: SignDisplay (ASL Visual Renderer)
+ * - Responsibility: Displays ASL letter/word signs as images, SVGs, or text fallback
+ * 
+ * DATA FLOW:
+ * 1. Parent passes `letter` prop (e.g., "A")
+ * 2. Component checks for available image in /public/signs/
+ * 3. If image exists → Display image
+ * 4. If no image → Display SVG fallback
+ * 5. If no SVG → Display text description
+ * 
+ * DEPENDENCIES:
+ * - Uses: src/lib/asl-signs.ts for additional sign data
+ * - Used by: src/app/page.tsx (in sign overlay)
+ * - Images in: /public/signs/*.png
+ * 
+ * KEY CONCEPTS:
+ * - Progressive fallback: Image → SVG → Text
+ * - All 26 letters supported
+ * - Size prop controls display dimensions
+ * 
+ * =============================================================================
+ */
+
 "use client";
 
 import React, { useState } from 'react';
 import { ASL_SIGNS } from '@/lib/asl-signs';
 
-// Map of available ASL images (generated images A-E)
+/**
+ * * Map of available ASL images
+ * true = image exists in /public/signs/{letter}.png
+ * All 26 letters currently have images
+ */
 const AVAILABLE_IMAGES: Record<string, boolean> = {
     A: true, B: true, C: true, D: true, E: true, F: true, G: true, H: true, I: true, J: true, K: true, L: true, M: true, N: true, O: true, P: true, Q: true, R: true, S: true, T: true, U: true, V: true, W: true, X: true, Y: true, Z: true
 };
 
-// ASL hand descriptions for letters without images
+/**
+ * * ASL hand descriptions for text fallback
+ * Used when no image or SVG is available
+ * Each string describes how to form the letter with your hand
+ */
 const ASL_DESCRIPTIONS: Record<string, string> = {
     A: "Fist with thumb on the side",
     B: "Flat hand, fingers up, thumb across palm",

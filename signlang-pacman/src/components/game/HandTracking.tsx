@@ -1,23 +1,96 @@
+/**
+ * =============================================================================
+ * FILE: HandTracking.tsx
+ * =============================================================================
+ * 
+ * C4 MODEL CONTEXT:
+ * - Container: Frontend (Next.js/React Application)
+ * - Component: HandTracking (Computer Vision / Gesture Detection)
+ * - Responsibility: Webcam capture, MediaPipe hand landmark detection, sign verification
+ * 
+ * DATA FLOW:
+ * 1. Component mounts → Initialize MediaPipe HandLandmarker + webcam
+ * 2. Video frames captured at ~30fps
+ * 3. Each frame sent to MediaPipe → Returns 21 hand landmarks
+ * 4. Landmarks passed to checkSign() → Returns true/false for match
+ * 5. On match → Progress bar fills → onGestureMatch callback fired
+ * 
+ * DEPENDENCIES:
+ * - Uses: @mediapipe/tasks-vision for hand tracking
+ * - Uses: src/lib/sign-definitions.ts for checkSign()
+ * - Called by: src/app/page.tsx (embedded in sign overlay)
+ * - Calls: onGestureMatch prop to notify parent of successful sign
+ * 
+ * KEY CONCEPTS:
+ * - requestAnimationFrame loop: Runs detection continuously at ~60fps
+ * - Progress bar: Must hold sign steady for ~1 second (fills to 100%)
+ * - Status states: WAITING (no hand), ANALYZING (hand found), MATCH (correct sign)
+ * 
+ * =============================================================================
+ */
+
 "use client";
 
 import React, { useEffect, useRef, useState } from 'react';
 import { HandLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 import { checkSign } from "@/lib/sign-definitions";
 
+/**
+ * * Props for HandTracking component
+ * @property onGestureMatch - Callback when user successfully makes the sign
+ * @property targetWord - The letter/word user needs to sign (e.g., "A", "H")
+ */
 interface HandTrackingProps {
-    onGestureMatch: (word: string) => void;
-    targetWord: string | null;
+    onGestureMatch: (word: string) => void;  // * Called when sign is verified
+    targetWord: string | null;               // * Current target to match
 }
 
+/**
+ * * HandTracking Component
+ * 
+ * Displays webcam feed with hand landmark overlay.
+ * Detects ASL signs using MediaPipe and notifies parent on match.
+ * 
+ * STATE MACHINE:
+ * - WAITING: No hand detected, searching...
+ * - ANALYZING: Hand detected, checking if it matches target
+ * - MATCH: Sign matches! Hold to verify...
+ * 
+ * PROGRESS LOGIC:
+ * - Correct sign: Progress += 12% per frame (fills in ~8 frames = ~0.5s)
+ * - Wrong sign: Progress -= 1.5% per frame (decays slowly)
+ * - No hand: Progress -= 0.5% per frame (decays very slowly)
+ * - At 100%: Trigger onGestureMatch and stop
+ * 
+ * @example
+ * <HandTracking
+ *   targetWord="A"
+ *   onGestureMatch={(word) => console.log(`Signed: ${word}`)}
+ * />
+ */
 export const HandTracking: React.FC<HandTrackingProps> = ({ onGestureMatch, targetWord }) => {
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [landmarker, setLandmarker] = useState<HandLandmarker | null>(null);
-    const [progress, setProgress] = useState(0);
-    const [status, setStatus] = useState<'WAITING' | 'ANALYZING' | 'MATCH' | 'RETRY'>('WAITING');
-    const isProcessingRef = useRef(false);
+    // * DOM References
+    const videoRef = useRef<HTMLVideoElement>(null);   // * Webcam video element
+    const canvasRef = useRef<HTMLCanvasElement>(null); // * Overlay for drawing landmarks
 
-    // Initialize landmarker and webcam together to ensure synchronization
+    // * State
+    const [landmarker, setLandmarker] = useState<HandLandmarker | null>(null);
+    const [progress, setProgress] = useState(0);       // * 0-100 progress bar value
+    const [status, setStatus] = useState<'WAITING' | 'ANALYZING' | 'MATCH' | 'RETRY'>('WAITING');
+
+    // * Refs for async state (avoids stale closures in RAF loop)
+    const isProcessingRef = useRef(false);             // * Prevents double-triggers
+
+    /**
+     * * Effect: Initialize MediaPipe and Webcam
+     * 
+     * Runs once on component mount.
+     * 1. Loads MediaPipe WASM files from CDN
+     * 2. Creates HandLandmarker with GPU acceleration
+     * 3. Starts webcam stream
+     * 
+     * CLEANUP: Stops webcam and closes landmarker on unmount
+     */
     useEffect(() => {
         let handLandmarker: HandLandmarker;
         let stream: MediaStream;
