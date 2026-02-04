@@ -44,11 +44,10 @@ import dynamic from 'next/dynamic';
 import { useGameStore } from "@/store/gameSlice";
 import { GameCanvas } from "@/components/game/GameCanvas";
 import { SignPopup } from "@/components/game/SignPopup";
-import { VideoTranslator } from "@/components/youtube/VideoTranslator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trophy, BookOpen, Youtube, GraduationCap, X, Globe, Star } from "lucide-react";
+import { Trophy, BookOpen, GraduationCap, X, Globe, Star } from "lucide-react";
 
 // * Dynamic imports for client-side only components (use SSR: false for browser APIs)
 const HandTracking = dynamic(() => import("@/components/game/HandTracking").then(mod => mod.HandTracking), { ssr: false });
@@ -142,7 +141,7 @@ export default function Home() {
 
         {/* Main Interface */}
         <Tabs defaultValue="game" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 h-14 p-1 bg-slate-200/50 rounded-xl">
+          <TabsList className="grid w-full grid-cols-2 h-14 p-1 bg-slate-200/50 rounded-xl">
             <TabsTrigger
               value="game"
               className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-lg font-bold"
@@ -150,15 +149,6 @@ export default function Home() {
               <div className="flex items-center gap-2">
                 <Trophy className="h-5 w-5" />
                 Pacman Arcade
-              </div>
-            </TabsTrigger>
-            <TabsTrigger
-              value="youtube"
-              className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm text-lg font-bold"
-            >
-              <div className="flex items-center gap-2">
-                <Youtube className="h-5 w-5" />
-                YouTube Translator
               </div>
             </TabsTrigger>
             <TabsTrigger
@@ -203,30 +193,21 @@ export default function Home() {
           </div>
 
           <TabsContent value="game" className="mt-6">
-            <Card className="border-none shadow-xl bg-white overflow-hidden">
-              <CardHeader className="border-b bg-slate-50/50">
-                <CardTitle className="text-2xl">Arcade Learning Mode</CardTitle>
-                <div className="text-sm text-muted-foreground">
-                  Eat the letter pellets to see their American Sign Language representation.
-                </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                <GameCanvas />
-              </CardContent>
-            </Card>
-
-            {/* Level 2 Section */}
-            {level2Unlocked && (
-              <Card className="mt-6 border-2 border-purple-200 shadow-xl bg-gradient-to-br from-purple-50 to-blue-50 overflow-hidden">
-                <CardHeader className="border-b border-purple-100">
-                  <CardTitle className="text-2xl flex items-center gap-2">
-                    <Star className="h-6 w-6 text-purple-600" />
-                    Level 2: Initialized Signs
-                  </CardTitle>
-                  <CardDescription>
-                    Learn signs where the handshape uses the first letter of the word.
-                  </CardDescription>
+            {/* Show Level 1 (Pacman) OR Level 2 based on current level */}
+            {level === 1 ? (
+              <Card className="border-none shadow-xl bg-white overflow-hidden">
+                <CardHeader className="border-b bg-slate-50/50">
+                  <CardTitle className="text-2xl">Level 1: Letter Learning</CardTitle>
+                  <div className="text-sm text-muted-foreground">
+                    Eat the letter pellets to learn their ASL signs. Complete 3 words to unlock Level 2!
+                  </div>
                 </CardHeader>
+                <CardContent className="p-6">
+                  <GameCanvas />
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="border-2 border-purple-200 shadow-xl bg-gradient-to-br from-purple-50 to-blue-50 overflow-hidden">
                 <CardContent className="p-0">
                   <Level2Game />
                 </CardContent>
@@ -234,19 +215,7 @@ export default function Home() {
             )}
           </TabsContent>
 
-          <TabsContent value="youtube" className="mt-6">
-            <Card className="border-none shadow-xl bg-white overflow-hidden min-h-[700px]">
-              <CardHeader className="border-b bg-slate-50/50">
-                <CardTitle className="text-2xl">Sign Interpretation Hub</CardTitle>
-                <CardDescription>
-                  Enter any YouTube URL to see a transcript and learn signs in context.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                <VideoTranslator />
-              </CardContent>
-            </Card>
-          </TabsContent>
+
 
           <TabsContent value="sign-translator" className="mt-6">
             <Card className="border-none shadow-xl bg-white overflow-hidden min-h-[700px]">

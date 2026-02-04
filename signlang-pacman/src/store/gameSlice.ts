@@ -278,8 +278,7 @@ export const useGameStore = create<GameState>()(
              * 1. Add all unique letters from word to masteredLetters
              * 2. Increment wordsCompleted counter
              * 3. Check if Level 2 should unlock:
-             *    - Need 3+ words completed
-             *    - Need 20+ unique letters mastered
+             *    - Need 3+ words completed (that's it!)
              * 
              * @param word - The completed word (e.g., "HELLO")
              */
@@ -297,8 +296,8 @@ export const useGameStore = create<GameState>()(
 
                 // * Check Level 2 unlock criteria:
                 // * - Must complete at least 3 words
-                // * - Must master at least 20 unique letters
-                const shouldUnlock = newWordsCompleted >= 3 && uniqueNewLetters.length >= 20;
+                // ! Previously also required 20 letters, but that was too restrictive
+                const shouldUnlock = newWordsCompleted >= 3;
 
                 // * Update state
                 set({

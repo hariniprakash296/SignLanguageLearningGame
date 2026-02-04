@@ -86,16 +86,32 @@ A gamified learning platform that:
 
 ### Game Modes
 
-#### Level 1: Letters (Teaching Mode)
-- Eat pellets to see ASL letter signs
-- Practice each letter with visual guidance
-- Hints are always shown
+#### Level 1: Letters (Pacman Teaching Mode)
+- Play the classic Pacman game
+- Eat pellets to learn ASL letter signs
+- Practice each letter with visual guidance and hints
 - Complete 3 words to unlock Level 2
 
-#### Level 2: Words
-- Spell complete words from memory
-- No visual hints
-- Higher point values
+#### Level 2: Initialized Signs (Family-Based Learning)
+
+**What is Initialization?**
+In ASL, "initialized signs" use the first letter of the English word as part of the handshape. Many related words share the SAME movement but use DIFFERENT letter handshapes.
+
+**Word Families Taught:**
+| Family | Example Words | Shared Movement |
+|--------|--------------|-----------------|
+| **Educators** 🎓 | Teacher, Tutor, Coach, Instructor | Forward from head (sharing knowledge) |
+| **Groups** 👥 | Family, Team, Group, Class | Circular arc apart |
+| **Days** 📅 | Monday, Tuesday, Wednesday... | Small circular motion |
+| **Colors** 🎨 | Blue, Green, Purple, Yellow | Shaking motion |
+| **Local/Culture** 📍 | Local, Culture, Community | Circular near body |
+
+**How Level 2 Works:**
+1. Welcome screen explains initialization concept
+2. Each family is introduced with its shared movement
+3. Learn each word in the family with handshape + movement
+4. Practice signing with webcam verification
+5. Progress through all families to complete Level 2
 
 ### Tabs
 
