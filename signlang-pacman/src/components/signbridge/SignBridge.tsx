@@ -24,7 +24,7 @@ export const SignBridge: React.FC = () => {
             const translation = await translateSign(frames, sourceRegion, targetRegion);
             setResult(translation);
 
-            const img = await generateSignVisual(translation.visualDescription);
+            const img = await generateSignVisual(translation.visualDescription, targetRegion);
             setVisualUrl(img);
         } catch (err: any) {
             setError(err.message || "Something went wrong during translation.");

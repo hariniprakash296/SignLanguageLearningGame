@@ -15,7 +15,6 @@
 - **Linguistic Reasoning Engine**: Powered by **Gemini 2.5 Flash**, this feature goes beyond simple classification. It "watches" a 5-second video of you signing to understand temporal movement.
 - **Polyglot Translation**: Translates **initialized words** (Level 2) and **full sentences** (e.g., "HELLO TALL MAN") into English gloss and other sign languages.
 - **Syntax Parsing**: Diagnostically identifies Subject, Verb, Object structures in your signing.
-- **SVG Visual Generation**: Uses the LLM to generate code-based **SVG Infographics** for visual aids instead of slow image generation.
 - **Hybrid Detection**: Combines MediaPipe (fast/offline) for game controls with Gemini (deep reasoning) for translation.
 - **Quota Protection**: Smart 10s cooldowns and frame optimization to respect API limits.
 
@@ -94,7 +93,7 @@ sequenceDiagram
 - **Frontend**: Next.js 14, React 19, Tailwind CSS
 - **Game Engine**: Custom Canvas-based engine
 - **State Management**: Zustand
-- **AI/ML**: Google Gemini 2.0 Flash, MediaPipe Tasks
+- **AI/ML**: Google Gemini 2.5 Flash, MediaPipe Tasks
 - **Testing**: Jest, React Testing Library
 
 ### Python Utility Scripts
