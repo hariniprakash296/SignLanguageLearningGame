@@ -11,15 +11,13 @@
 - **Level Progression**: Start with fingerspelling (Level 1) and unlock Initialized Signs (Level 2).
 - **Instant Feedback**: Computer vision verifies your hand signs in real-time.
 
-### 🤖 AI-Powered Recognition
-- **Gemini Vision Integration**: Uses Google's Gemini 2.0 Flash Vision API to "see" and recognize signs directly from your camera.
-- **Multi-Language Support**: Translates signs between languages (e.g., ASL → BSL).
-- **Hybrid Detection**: Combines MediaPipe hand tracking (offline, fast) with Gemini Vision (online, accurate).
-
-### 📖 Key Concepts
-- **Initialized Signs**: Advanced signs (Level 2) that combine a letter handshape with movement patterns (e.g., "FAMILY" uses the 'F' handshape in an arc).
-- **Movement Recognition**: Our custom `MovementAnalyzer` tracks temporal hand trajectories to detect arcs, circles, shakes, and taps in real-time.
-- **Smart Rate Limiting**: Intelligent 5-second throttling to optimize Gemini API usage and ensure high reliability on free tier quotas.
+### 🤖 AI-Powered SignBridge
+- **Linguistic Reasoning Engine**: Powered by **Gemini 2.5 Flash**, this feature goes beyond simple classification. It "watches" a 5-second video of you signing to understand temporal movement.
+- **Polyglot Translation**: Translates **initialized words** (Level 2) and **full sentences** (e.g., "HELLO TALL MAN") into English gloss and other sign languages.
+- **Syntax Parsing**: Diagnostically identifies Subject, Verb, Object structures in your signing.
+- **SVG Visual Generation**: Uses the LLM to generate code-based **SVG Infographics** for visual aids instead of slow image generation.
+- **Hybrid Detection**: Combines MediaPipe (fast/offline) for game controls with Gemini (deep reasoning) for translation.
+- **Quota Protection**: Smart 10s cooldowns and frame optimization to respect API limits.
 
 ---
 
