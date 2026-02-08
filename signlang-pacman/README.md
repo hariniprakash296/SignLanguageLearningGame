@@ -12,7 +12,7 @@
 - **Instant Feedback**: Computer vision verifies your hand signs in real-time.
 
 ### 🤖 AI-Powered SignBridge
-- **Linguistic Reasoning Engine**: Powered by **Gemini 2.5 Flash**, this feature goes beyond simple classification. It "watches" a 5-second video of you signing to understand temporal movement.
+- **Linguistic Reasoning Engine**: Powered by **Gemini 3 Flash Preview**, this feature goes beyond simple classification. It "watches" a 5-second video of you signing to understand temporal movement.
 - **Polyglot Translation**: Translates **initialized words** (Level 2) and **full sentences** (e.g., "HELLO TALL MAN") into English gloss and other sign languages.
 - **Syntax Parsing**: Diagnostically identifies Subject, Verb, Object structures in your signing.
 - **Hybrid Detection**: Combines MediaPipe (fast/offline) for game controls with Gemini (deep reasoning) for translation.
