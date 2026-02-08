@@ -9,7 +9,7 @@ const ASL_VOCABULARY = `
 ## CRITICAL ASL SIGN VOCABULARY - Use these descriptions to identify signs:
 
 ### Pronouns
-- **I/ME**: Index finger points to CENTER of chest (not face, not moving forward)
+- **I/ME**: Index finger points at SELF (face or upper body) - single pointing gesture, NOT pulling motion
 - **YOU**: Index finger points directly forward at the viewer/camera
 - **HE/SHE/IT**: Index finger points to the side (not at camera, not at self)
 - **WE**: Index finger moves in arc from one shoulder to the other across chest
@@ -17,7 +17,7 @@ const ASL_VOCABULARY = `
 
 ### Common Verbs
 - **HAVE**: Both hands in bent-5 handshape, fingertips touch chest (like holding something to chest)
-- **WANT**: Both hands open, palms up, pull toward body with fingers bending (grabbing motion)
+- **WANT**: Both hands open, palms up, pull toward CHEST with fingers bending (grabbing/pulling motion toward body)
 - **CALL/PHONE**: Y-handshape (thumb and pinky extended) held to ear, or C-hand at ear
 - **LIKE**: Middle finger and thumb touch chest, pull away while closing
 - **NEED**: X-handshape (crooked index) bends down at wrist repeatedly
@@ -89,9 +89,10 @@ const ASL_VOCABULARY = `
 - **THANK-YOU vs GIRL**: THANK-YOU = hand at MOUTH/CHIN moves FORWARD AWAY from face; GIRL = thumb traces DOWN the CHEEK (diagonal line on face)
 - **THANK-YOU vs EAT**: THANK-YOU = hand moves FORWARD from mouth; EAT = fingertips TAP lips repeatedly (stays at mouth)
 - **THINK vs KNOW**: THINK = finger/hand at temple may CIRCLE; KNOW = flat hand TAPS forehead once
+- **CALL vs THINK**: CALL = Y-hand or C-hand at EAR level (phone gesture, hand by SIDE of head); THINK = finger touches FOREHEAD/TEMPLE area (front of head, above eyes)
 - **MAN vs BOY**: MAN = touches FOREHEAD then CHIN (two points); BOY = FOREHEAD only
 - **WOMAN vs GIRL**: WOMAN = thumb along JAWLINE (chin to ear); GIRL = thumb down CHEEK (ear to chin, diagonal)
-- **ME vs PLEASE**: ME = finger POINTS at chest; PLEASE = flat hand CIRCLES on chest
+- **ME vs WANT**: ME = single finger POINTS at self (one hand); WANT = BOTH hands pull toward CHEST with grabbing motion (two hands, pulling)
 `;
 
 
@@ -119,6 +120,7 @@ ${ASL_VOCABULARY}
 - If thumb traces DOWN the CHEEK (ear to chin, diagonal) = GIRL
 - If thumb traces along JAWLINE (chin area) = WOMAN
 - If hand touches FOREHEAD/TEMPLE then stays or circles = THINK or KNOW
+- If Y-hand (thumb+pinky) or C-hand is at EAR (side of head, NOT forehead) = CALL/PHONE (NOT THINK)
 - If hand touches FOREHEAD then moves to CHIN = MAN
 - If fingertips TAP lips repeatedly (staying at mouth) = EAT
 - Pay attention to DIRECTION of movement - forward means THANK-YOU!
