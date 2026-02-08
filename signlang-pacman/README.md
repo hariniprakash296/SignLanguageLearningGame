@@ -176,7 +176,7 @@ classDiagram
 - **Frontend**: Next.js 14, React 19, Tailwind CSS
 - **Game Engine**: Custom Canvas-based engine
 - **State Management**: Zustand
-- **AI/ML**: Google Gemini 2.5 Flash, MediaPipe Tasks
+- **AI/ML**: Google Gemini 2.5 Flash/Gemini 3 Flash Preview, MediaPipe Tasks
 - **Testing**: Jest, React Testing Library
 
 ### Python Utility Scripts
@@ -216,7 +216,7 @@ Sign language visual demonstrations are generated using:
 
 Rate limiting is applied (5 requests/minute) to respect API quotas.
 
-> **Note**: This project does **not** use TensorFlow, PyTorch, or custom ML model training. Sign recognition is powered by cloud-based Gemini Vision API and on-device MediaPipe (pre-trained).
+> **Note**: This project will use TensorFlow, PyTorch, or custom ML model training in future. For now sign recognition is powered by cloud-based Gemini Vision API and on-device MediaPipe (pre-trained).
 
 ---
 
