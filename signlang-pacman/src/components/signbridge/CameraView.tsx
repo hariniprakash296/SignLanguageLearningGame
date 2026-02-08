@@ -13,19 +13,36 @@ const CameraView: React.FC<CameraViewProps> = ({ onCaptureComplete, isProcessing
     const [countdown, setCountdown] = useState<number | null>(null);
 
     useEffect(() => {
+        let stream: MediaStream | null = null;
+        let isCancelled = false;
+
         async function setupCamera() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({
+                const mediaStream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: 'user', width: 640, height: 480 }
                 });
+
+                if (isCancelled) {
+                    mediaStream.getTracks().forEach(track => track.stop());
+                    return;
+                }
+
+                stream = mediaStream;
                 if (videoRef.current) {
-                    videoRef.current.srcObject = stream;
+                    videoRef.current.srcObject = mediaStream;
                 }
             } catch (err) {
                 console.error("Camera access denied:", err);
             }
         }
         setupCamera();
+
+        return () => {
+            isCancelled = true;
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        };
     }, []);
 
     const captureSequence = useCallback(async () => {

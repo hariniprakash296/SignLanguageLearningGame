@@ -15,14 +15,14 @@ export const SignTranslator: React.FC = () => {
     const [visuals, setVisuals] = useState<Map<string, string | null>>(new Map());
     const [error, setError] = useState<string | null>(null);
 
-    const handleCapture = async (frames: string[]) => {
+    const handleCapture = async (frames: string[], detectedSigns: string[]) => {
         setIsProcessing(true);
         setError(null);
         setResult(null);
         setVisuals(new Map());
 
         try {
-            const translation = await translateSign(frames, sourceRegion, targetRegion);
+            const translation = await translateSign(frames, sourceRegion, targetRegion, detectedSigns);
             setResult(translation);
 
             // Generate visuals for each sign in the gloss

@@ -22,33 +22,116 @@
 
 ## 🏗️ Architecture
 
-### System Context
+### System Context (Level 1)
 ```mermaid
-graph TD
-    User((User))
-    Web[Next.js App]
-    API[Next.js API Routes]
-    Gemini[Gemini Vision API]
+C4Context
+    title System Context Diagram for SignLang Pacman
 
-    User -->|Plays| Web
-    User -->|Signs| Web
-    Web -->|Verifies| API
-    API -->|Recognizes| Gemini
+    Person(user, "Learner", "A user wanting to learn ASL through gamification.")
+    System(signApp, "SignLang Pacman", "Next.js Web Application\nProvides game mechanics, sign lessons, and feedback.")
+    
+    System_Ext(gemini, "Google Gemini API", "Vision & Multimodal AI\nAnalyzes sign language gestures and provides translations.")
+    System_Ext(youtube, "YouTube", "Content Source\nProvides videos for transcript services.")
+    
+    Rel(user, signApp, "Plays game, Signs gestures")
+    Rel(signApp, gemini, "Sends video frames, Receives syntax analysis", "JSON/HTTPS")
+    Rel(signApp, youtube, "Fetches video content")
 ```
 
-### Recognition Pipeline
+### Container Architecture (Level 2)
 ```mermaid
-sequenceDiagram
-    participant Camera
-    participant App
-    participant API
-    participant Gemini
+C4Container
+    title Container Diagram for SignLang Pacman
 
-    Camera->>App: Video Frame
-    App->>API: POST /interpreter
-    API->>Gemini: Analyze Image
-    Gemini-->>API: Sign: "HELLO" (BSL)
-    API-->>App: Display Result
+    Person(user, "Learner", "Interacts with the app via Browser.")
+
+    Container_Boundary(c1, "SignLang Pacman App") {
+        Container(web_app, "Single Page App", "React, Next.js, Tailwind", "Delivers UI, Game Loop, and Logic.")
+        Container(api_server, "API Routes", "Next.js Server API", "Handles specific backend agents and proxies.")
+        Container(store, "Client Store", "Zustand", "Manages Game State, Sign State, and User Progress.")
+    }
+
+    System_Ext(gemini, "Gemini Vision API", "Google Cloud", "Processes Sign Language Images.")
+    System_Ext(mediapipe, "MediaPipe Tasks", "WASM Library", "In-browser Hand Landmarking for fast feedback.")
+
+    Rel(user, web_app, "Uses", "HTTPS")
+    Rel(web_app, store, "Reads/Writes State")
+    Rel(web_app, gemini, "Direct SDK Calls (Vision)", "HTTPS/SDK")
+    Rel(web_app, mediapipe, "Real-time Tracking", "WASM")
+    Rel(web_app, api_server, "Calls Internal APIs", "JSON/HTTPS")
+```
+
+### Component Architecture (Level 3)
+```mermaid
+C4Component
+    title Component Diagram for SignLang Pacman (Frontend)
+
+    Container_Boundary(spa, "Single Page Application") {
+        
+        Component(game_page, "Page.tsx", "Next.js Page", "Main Entry Point & Layout Orchestrator.")
+        
+        Component(game_engine, "GameCanvas / GameEngine", "TS Class + Canvas", "Handles Pacman Physics, Collision, Rendering loop.")
+        
+        Component(sign_bridge, "SignBridge", "React Component", "Manages 'Listening' mode, captures video, coordinates Translation.")
+        
+        Component(hand_tracker, "CameraView / HandTracking", "MediaPipe Integration", "Captures webcam, overlays landmarks, detects geometric signs.")
+        
+        Component(service_gemini, "GeminiService", "TypeScript Module", "Encapsulates GoogleGenAI SDK, Prompt Engineering, and Response Parsing.")
+        
+        Component(store_game, "GameSlice", "Zustand Store", "Tracks Score, Level, Pellets.")
+        
+        Component(sys_ui, "UI Components", "Shared", "SignDisplay, Popups, Buttons.")
+
+        System_Ext(google_genai_sdk, "Google GenAI SDK", "External Module", "Client-side library for interacting with Gemini API.")
+
+        Rel(game_page, game_engine, "Renders")
+        Rel(game_page, sign_bridge, "Renders")
+        Rel(game_engine, store_game, "Updates Score/State")
+        
+        Rel(sign_bridge, hand_tracker, "Controls Camera")
+        Rel(sign_bridge, service_gemini, "Calls translateSign / generateVisual")
+        Rel(service_gemini, "google_genai_sdk", "Uses")
+    }
+```
+
+### Code Architecture (Level 4)
+```mermaid
+classDiagram
+    direction TB
+    
+    class SignBridge {
+        +Region sourceRegion
+        +Region targetRegion
+        +handleCapture(frames)
+        -translateSign()
+        -generateVisual()
+    }
+
+    class GeminiService {
+        +translateSign(frames, source, target): TranslationResult
+        +generateSignVisual(description, target): string
+        +generateMultipleSignVisuals(signs, target)
+        -getAI(): GoogleGenAI
+    }
+
+    class TranslationResult {
+        +string sourceText
+        +string gloss
+        +GrammarPart[] grammarStructure
+        +string targetText
+        +string visualDescription
+    }
+
+    class GameEngine {
+        +update(deltaTime)
+        +render(ctx)
+        +checkCollisions()
+        +reset()
+    }
+
+    SignBridge --> GeminiService : Uses
+    GeminiService ..> TranslationResult : Returns
+    TranslationResult *-- GrammarPart : Contains
 ```
 
 ---
@@ -103,6 +186,35 @@ Two helper scripts are included for asset preparation (no ML model training invo
 |--------|---------|--------------|
 | `extract_asl.py` | Extracts individual ASL hand signs from a composite image | PIL, NumPy |
 | `check_grid.py` | Debug helper for verifying grid alignment | PIL |
+
+### 🖐️ Gesture Recognition Pipeline
+
+The app features a **hybrid client-side gesture recognition system** that works alongside the cloud-based Gemini API:
+
+| Component | Purpose |
+|-----------|---------|
+| `static-gestures.ts` | Detects handshapes (POINT, C_SHAPE, Y_SHAPE, etc.) from MediaPipe landmarks |
+| `movement-analyzer.ts` | Analyzes temporal movement patterns (CIRCULAR, TAP, FORWARD, etc.) |
+| `hybrid-recognizer.ts` | Score-based matching against the WLASL dictionary |
+| `wlasl-dictionary.ts` | **100+ common ASL signs** with handshape, movement, and location definitions |
+
+**Supported Sign Categories:**
+- Pronouns (ME, YOU, THEY)
+- Verbs (EAT, DRINK, SLEEP, WANT, CALL, WORK, HELP, etc.)
+- Greetings (HELLO, BYE, THANK-YOU, PLEASE)
+- Question Words (WHAT, WHERE, WHO, WHEN, WHY, HOW)
+- Time Words (NOW, TODAY, TOMORROW, YESTERDAY)
+- Family (MOTHER, FATHER, FRIEND, BABY)
+- And more...
+
+### 🖼️ Visual Reference Generation
+
+Sign language visual demonstrations are generated using:
+1. **Gemini 2.0 Flash** (native image generation) - Primary
+2. **Imagen 3** - Fallback
+3. **Placeholder** - Final fallback
+
+Rate limiting is applied (5 requests/minute) to respect API quotas.
 
 > **Note**: This project does **not** use TensorFlow, PyTorch, or custom ML model training. Sign recognition is powered by cloud-based Gemini Vision API and on-device MediaPipe (pre-trained).
 

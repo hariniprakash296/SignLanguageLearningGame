@@ -101,7 +101,9 @@ export const HandTracking: React.FC<HandTrackingProps> = ({ onGestureMatch, targ
                 const vision = await FilesetResolver.forVisionTasks(
                     "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
                 );
-                handLandmarker = await HandLandmarker.createFromOptions(vision, {
+
+                // Create landmarker
+                const createdLandmarker = await HandLandmarker.createFromOptions(vision, {
                     baseOptions: {
                         modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
                         delegate: "GPU"
@@ -109,14 +111,24 @@ export const HandTracking: React.FC<HandTrackingProps> = ({ onGestureMatch, targ
                     runningMode: "VIDEO",
                     numHands: 1
                 });
-                if (isCancelled) return;
+
+                if (isCancelled) {
+                    createdLandmarker.close();
+                    return;
+                }
+
+                handLandmarker = createdLandmarker;
                 setLandmarker(handLandmarker);
 
                 // 2. Start Camera
                 stream = await navigator.mediaDevices.getUserMedia({
                     video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" }
                 });
-                if (isCancelled || !videoRef.current) return;
+
+                if (isCancelled || !videoRef.current) {
+                    stream.getTracks().forEach(track => track.stop());
+                    return;
+                }
 
                 videoRef.current.srcObject = stream;
 

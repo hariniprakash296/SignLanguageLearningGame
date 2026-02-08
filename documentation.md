@@ -23,9 +23,10 @@
 12. [Release Notes](#-release-notes)
 13. [Developer Onboarding](#-developer-onboarding)
 14. [System Architecture (C4 Model)](#-1-system-architecture-c4-model)
-15. [System Design & Data Flow](#-2-system-design--data-flow)
-16. [Game Engine Logic](#-3-game-engine-logic)
-17. [State Management](#-4-state-management)
+15. [SignBridge Architecture (New)](#-15-signbridge-architecture)
+16. [System Design & Data Flow](#-2-system-design--data-flow)
+17. [Game Engine Logic](#-3-game-engine-logic)
+18. [State Management](#-4-state-management)
 18. [Summary](#-summary)
 
 ---
@@ -184,6 +185,7 @@ In ASL, "initialized signs" use the first letter of the English word as part of 
 | **Styling** | Tailwind CSS | 3.4.13 |
 | **State Management** | Zustand | 5.0.0 |
 | **Hand Tracking** | MediaPipe Tasks Vision | 0.10.32 |
+| **AI Model** | Google Gemini 2.5 Flash | Latest |
 | **Testing** | Jest + React Testing Library | 30.2.0 |
 | **Backend** | Flask (Python) | 2.0+ |
 
@@ -225,13 +227,14 @@ In ASL, "initialized signs" use the first letter of the English word as part of 
 | **Description** | Unlock Level 2 after completing 3 words |
 | **Acceptance Criteria** | Progress persists across sessions |
 
-### FR-005: YouTube Translation
+### FR-005: SignBridge Polyglot Translator
 | Attribute | Value |
 |-----------|-------|
-| **Priority** | P2 (Medium) |
+| **Priority** | P0 (Critical) |
 | **Status** | ✅ Implemented |
-| **Description** | Extract YouTube transcripts and show ASL signs |
-| **Acceptance Criteria** | Syncs with video playback |
+| **Description** | Real-time syntax parsing and translation of initialized words and full ASL sentences. |
+| **Key Features** | • **Temporal Capture**: Records 5s video (15 frames) to capture movement trajectory.<br>• **Linguistic Reasoning**: Uses Gemini 3 Pro to diagnositically parse grammar (SUBJ, VERB, OBJ).<br>• **Polyglot Support**: Translates initialized ASL signs into English gloss and other target sign languages.<br>• **Quota Guard**: Smart caching and 10s cooldowns. |
+| **Acceptance Criteria** | Accurately identifies sentence structure (e.g., "MAN HE HAVE CAR") from video input. |
 
 ## Supported ASL Letters
 
@@ -695,7 +698,18 @@ interface Landmark {
 
 ## Version History
 
-### v1.4.0 (2026-02-04) - Current
+### v1.5.0 (2026-02-05) - Current
+
+#### ✨ New
+- **Polyglot SignBridge**: Added support for regional sign languages (ASL, BSL, etc.).
+- **Gemini 2.5 Flash Integration**: Upgraded from 1.5-flash/2.0-flash for faster and more reliable responses.
+- **Enhanced Visual Generation**: Improved SVG generation prompts and error handling.
+
+#### 🔧 Improved
+- **Error Handling**: Robust parsing of Gemini API responses to prevent crashes.
+- **Type Safety**: Fixed `targetRegion` propagation in visual generation pipeline.
+
+### v1.4.0 (2026-02-04)
 
 #### ✨ New
 - CI/CD pipeline with GitHub Actions
@@ -1103,6 +1117,45 @@ Game progress is saved to `localStorage`:
 **Not persisted** (resets on refresh):
 - Score
 - Current game session
+
+---
+
+# 🏗️ 15. SignBridge Architecture
+
+The **SignBridge** module represents a shift from simple static classification to **Linguistic Reasoning**.
+
+## The Challenge
+Traditional computer vision classifies single frames (e.g., "This is an 'A'"). However, ASL relies on **movement** and **syntax**. A static image cannot distinguish "Family" (circular movement) from "Class" (same handshape, different context), nor can it parse sentence structures.
+
+## The Solution: Multi-Modal Linguistic Engine
+
+### 1. The Sensor: Temporal Frame Sampling (`CameraView.tsx`)
+Instead of a live stream, we capture a specific **Temporal Artifact**:
+- **Duration**: 5 seconds
+- **Sampling Rate**: ~3 FPS (Frames Per Second)
+- **Total Payload**: 15 Frames
+- **Compression**: JPEG (0.4 quality) to minimize token usage.
+
+This creates a "flipbook" that allows the AI to see the *trajectory* of signs, crucial for **Initialized Signs** (Level 2).
+
+### 2. The Brain: Gemini 3 Pro (`geminiService.ts`)
+We use **Google Gemini 3 Pro** as a reasoning engine, not just a classifier.
+- **Prompt Strategy**: "Diagnostic Mode". We force the model to output a JSON structure identifying the grammatical role of every distinct sign.
+- **Thinking Budget**: The model is allowed a "thinking" phase to weigh possibilities (e.g., "Is this one person moving or two?" -> "Subject Pronoun Doubling").
+
+### 3. The Output: Syntax & Translation
+The system returns a structured object:
+```json
+{
+  "gloss": "HELLO TALL MAN HAVE CELLPHONE CAR",
+  "grammarStructure": [
+    {"word": "MAN", "role": "SUBJ"},
+    {"word": "HAVE", "role": "VERB"}
+  ],
+  "translation": "Hello, the tall man has a cellphone and a car."
+}
+```
+This enables the UI to render color-coded syntax pills, bridging the gap between raw video and linguistic understanding.
 
 ---
 
